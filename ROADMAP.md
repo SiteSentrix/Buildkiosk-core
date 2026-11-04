@@ -30,6 +30,7 @@ The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 2. The open parts of the tools already built, in the order of `docs/gaps.md`: inspections (4), drawings (5), schedule (6), financials (7), company reports (10), prequalification (11), languages (12).
 
 ## Progress log
+- 2026-11-04: Server: `route_patterns()` lists every route the web server serves (pattern and methods), kept by the same calls that register the routes; a test proves the list and the router match (#31).
 - 2026-11-04: QA bot regression suite (#3): the real program started on a throwaway demo data folder and driven over HTTP by every role (route table, crawl, tool loops with the journal checked, imports and exports, safety, restart and upgrade), `@smoke` on pull requests and `@release` nightly and for tags, report on the `qa-reports` branch, `qa/known-skips.json` (`docs/qa.md`).
 - 2026-11-04: Server: every request resolves its company through the `TenantResolver` hook and is handled by that company's own state, store and sessions (`crates/server/src/tenants.rs`); the default keeps one company per server, unchanged.
 - 2026-10-20: Schedule: resource levelling (preview and apply on the resources page; `schedule.level_plan`, `schedule.level`), and resources, limits and the working calendar read from Microsoft Project XML files on request.

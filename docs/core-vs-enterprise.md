@@ -53,6 +53,11 @@ Each trait has a default that behaves exactly like the core today, so single-com
 | `BackgroundJob` | none in core | running timed work (mail queue, reminders, recurring forms, backups) for each company | No: the server runs these passes for its one company |
 | `FeatureFlags` | `NoFlags` (nothing optional is on) | showing or hiding features a build adds | No |
 
+Other public hooks:
+- `buildkiosk_server::route_patterns()`: every route the web server serves (pattern such as
+  `/projects/{id}/rfis/{rid}` and its methods), built by the same calls that build the router, so tests outside the
+  core can visit every page without reading its source.
+
 Still to add when the add-ons need them: a way to register extra commands (the command registry in
 `crates/engine/src/cmd/mod.rs` and the tool list in `crates/model/src/tool.rs` are fixed today), and a way to add
 pages and menu items to the web UI.

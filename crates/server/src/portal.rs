@@ -8,13 +8,12 @@
 
 use std::collections::HashMap;
 
-use axum::Router;
+use crate::route_list::{Routes, get, post};
 use axum::body::Bytes;
 use axum::extract::{Multipart, Path, Query, State};
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
 use buildkiosk_engine::Actor;
 use buildkiosk_engine::model::bidding::BidStatus;
 use serde_json::{Map, Value, json};
@@ -23,7 +22,7 @@ use super::{App, Shared, auth, flash_from, get_form, html, mail, now_ms, parse_f
 
 type Q = Query<HashMap<String, String>>;
 
-pub(crate) fn routes(router: Router<Shared>) -> Router<Shared> {
+pub(crate) fn routes(router: Routes) -> Routes {
     router
         .route("/bid/{token}", get(page))
         .route("/bid/{token}/submit", post(submit))

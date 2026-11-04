@@ -12,6 +12,7 @@ mod pdfsplit;
 mod portal;
 mod prequal_portal;
 mod render;
+mod route_list;
 pub mod s3;
 mod sign_portal;
 mod tenants;
@@ -35,7 +36,6 @@ use axum::extract::{DefaultBodyLimit, Multipart, Path, Query, State};
 use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, COOKIE, LOCATION, SET_COOKIE};
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
 use buildkiosk_core::{Id, Timestamp, text};
 use buildkiosk_engine::model::finance::{BudgetChange, ChangeEvent, CommitmentChange, PrimeChange, PrimeContract};
 use buildkiosk_engine::model::finance::{CommitmentInvoice, OwnerInvoice};
@@ -57,6 +57,8 @@ use serde_json::{Map, Value, json};
 use tower_http::catch_panic::CatchPanicLayer;
 
 use auth::{CSRF_COOKIE, RateLimit, SESSION_COOKIE};
+pub use route_list::RoutePattern;
+use route_list::{Routes, get, post};
 pub use tenants::{Opener, Tenants};
 
 /// Largest form or API body accepted.
@@ -309,7 +311,26 @@ impl Inner {
 // -- routing
 
 pub fn router(app: Shared) -> Router {
-    let router = Router::new()
+    routes()
+        .into_router()
+        .fallback(not_found)
+        .layer(axum::middleware::from_fn_with_state(app.clone(), uploads_need_a_session))
+        .layer(axum::middleware::from_fn_with_state(app.clone(), translate_pages))
+        .layer(DefaultBodyLimit::max(MAX_BODY))
+        .layer(axum::middleware::map_response_with_state(app.clone(), security_headers))
+        .layer(CatchPanicLayer::new())
+        .with_state(app)
+}
+
+/// Every route [`router`] serves (pattern and methods), in the order they are registered. Read-only: it is built by
+/// the same calls that build the router, so the two always match.
+pub fn route_patterns() -> Vec<RoutePattern> {
+    routes().into_list()
+}
+
+/// Registers every route, keeping the list of them.
+fn routes() -> Routes {
+    let router = Routes::new()
         .route("/", get(home))
         .route("/login", get(login_page).post(login_post))
         .route("/logout", post(logout))
@@ -765,15 +786,7 @@ pub fn router(app: Shared) -> Router {
     let router = contract_pdf_routes(router);
     let router = portal::routes(router);
     let router = sign_portal::routes(router);
-    let router = prequal_portal::routes(router);
-    router
-        .fallback(not_found)
-        .layer(axum::middleware::from_fn_with_state(app.clone(), uploads_need_a_session))
-        .layer(axum::middleware::from_fn_with_state(app.clone(), translate_pages))
-        .layer(DefaultBodyLimit::max(MAX_BODY))
-        .layer(axum::middleware::map_response_with_state(app.clone(), security_headers))
-        .layer(CatchPanicLayer::new())
-        .with_state(app)
+    prequal_portal::routes(router)
 }
 
 /// Serves one company until the process is stopped. Requests still go through the tenant resolver: the default
@@ -1692,7 +1705,7 @@ fn doc_save_impl<T: LineDoc>(app: Shared, headers: HeaderMap, project: u64, doc:
 
 /// Registers the pages of a cost document under `/projects/{id}/<path>`.
 /// The printable contract (with its signature record) of a commitment, prime contract and prime change order.
-fn contract_pdf_routes(router: Router<Shared>) -> Router<Shared> {
+fn contract_pdf_routes(router: Routes) -> Routes {
     use buildkiosk_engine::cmd::signing::Kind;
     let mut router = router;
     for (path, kind) in [("commitments", Kind::Commitment), ("prime-contracts", Kind::PrimeContract), ("prime-change-orders", Kind::PrimeChange)] {
@@ -1706,7 +1719,7 @@ fn contract_pdf_routes(router: Router<Shared>) -> Router<Shared> {
     router
 }
 
-fn doc_routes<T: LineDoc>(router: Router<Shared>) -> Router<Shared> {
+fn doc_routes<T: LineDoc>(router: Routes) -> Routes {
     let base = format!("/projects/{{id}}/{}", T::PATH);
     router
         .route(&base, get(doc_list::<T>))
@@ -1718,7 +1731,7 @@ fn doc_routes<T: LineDoc>(router: Router<Shared>) -> Router<Shared> {
 }
 
 /// Registers the pages of a work item tool under `/projects/{id}/<path>`.
-fn work_routes<T: WorkPage>(router: Router<Shared>) -> Router<Shared> {
+fn work_routes<T: WorkPage>(router: Routes) -> Routes {
     let base = format!("/projects/{{id}}/{}", T::PATH);
     router
         .route(&base, get(work_list::<T>))
@@ -2052,7 +2065,7 @@ async fn invoice_save<T: InvoicePage>(State(app): State<Shared>, headers: Header
 }
 
 /// Registers the pages of an invoice kind under `/projects/{id}/<path>`.
-fn invoice_routes<T: InvoicePage>(router: Router<Shared>) -> Router<Shared> {
+fn invoice_routes<T: InvoicePage>(router: Routes) -> Routes {
     let base = format!("/projects/{{id}}/{}", T::PATH);
     router
         .route(&base, get(invoice_list::<T>))
