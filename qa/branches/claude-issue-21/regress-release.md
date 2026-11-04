@@ -1,6 +1,6 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-04T03:26:37Z · commit 859be5442e24 · release suite · 2 s
+Generated 2026-11-04T03:33:05Z · commit 83f41f31a34b · release suite · 2 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
@@ -37,9 +37,9 @@ No earlier report to compare with.
 |---|---|
 | routes › admin: made-up and malformed ids never cause a server error | 0.2 s |
 | boot › the demo company is created from the command line | 0.2 s |
-| sign-in › repeated wrong passwords are slowed down | 0.2 s |
-| boot › the server starts on a free port and answers | 0.1 s |
+| sign-in › repeated wrong passwords are slowed down | 0.1 s |
 | data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
+| boot › the server starts on a free port and answers | 0.1 s |
 | uploads › a file over 25 MB is refused without a server error | 0.1 s |
 | routes › admin: every page in the route table answers without a server error | 0.1 s |
 | routes › project manager: every page in the route table answers without a server error | 0.1 s |
@@ -49,22 +49,22 @@ No earlier report to compare with.
 | Request | Status | Time |
 |---|---|---|
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (admin) | 303 | 0.0 s |
+| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (project manager) | 303 | 0.0 s |
+| POST /login (anonymous) | 401 | 0.0 s |
 | POST /login (superintendent) | 303 | 0.0 s |
-| POST /login (anonymous) | 401 | 0.0 s |
-| POST /login (anonymous) | 401 | 0.0 s |
 | POST /login (project engineer) | 303 | 0.0 s |
+| POST /login (subcontractor) | 303 | 0.0 s |
 
 ## Every check
 
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-7714/data. |
+| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-7728/data. |
 | boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:44099 |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:45971 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
@@ -129,7 +129,7 @@ No earlier report to compare with.
 | api | a command with an API token works; without one it is refused | @release | pass | 0.0 s | 200 with, 401 without |
 | api | a subcontractor's token cannot add people to the company | @release | pass | 0.0 s | 403 |
 | api | MCP over HTTP answers initialize with a token | @release | pass | 0.0 s | initialize ok |
-| sign-in | repeated wrong passwords are slowed down | @release | pass | 0.2 s | 429 after repeated failures |
+| sign-in | repeated wrong passwords are slowed down | @release | pass | 0.1 s | 429 after repeated failures |
 | sign-in | signing out ends the session (the old cookie no longer works) | @release | pass | 0.0 s | old cookie refused |
 | access | a record opened under another project is not found | @release | pass | 0.0 s | RFI 8 under project 1: not found |
 | safety | every form post without its CSRF token is refused and changes nothing | @smoke | pass | 0.0 s | 80 post routes refused |
