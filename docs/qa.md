@@ -67,3 +67,11 @@ Add it to `crates/app/tests/regress/stories.rs` with `run.check(area, name, Tag:
 `Ok(detail)` passes, `Err(detail)` fails, and a panic inside a check fails only that check. Use `submit` (open a page,
 fill a form like a person, expect the "done" redirect), `press` (a one-button form) and `journaled` (the journal got
 the right command, made by a person) for tool loops.
+
+## The tools as a library
+
+The report and gate, the known-skips rules, the HTTP client, the page reader and the server launcher live in the
+`buildkiosk-regress-kit` crate (`crates/regress-kit`, `publish = false`); the stories stay in
+`crates/app/tests/regress/`. Another suite built on the core can depend on it (as a git dependency) to write the same
+report and follow the same skip rules: `report::Run::new(suite)`, `run.check(…)`, `report::load_skips(path)`,
+`report::finish(&run, &inputs)`, and `server::Server::start(bin, data, extra, log)` for its own program.

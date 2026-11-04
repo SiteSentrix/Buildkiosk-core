@@ -53,6 +53,10 @@ Each trait has a default that behaves exactly like the core today, so single-com
 | `BackgroundJob` | none in core | running timed work (mail queue, reminders, recurring forms, backups) for each company | No: the server runs these passes for its one company |
 | `FeatureFlags` | `NoFlags` (nothing optional is on) | showing or hiding features a build adds | No |
 
+Other public hooks:
+- `buildkiosk-regress-kit` (`crates/regress-kit`): the regression suite's report, known-skips rules, HTTP client, page
+  reader and server launcher, for suites outside the core (`docs/qa.md`).
+
 Still to add when the add-ons need them: a way to register extra commands (the command registry in
 `crates/engine/src/cmd/mod.rs` and the tool list in `crates/model/src/tool.rs` are fixed today), and a way to add
 pages and menu items to the web UI.
