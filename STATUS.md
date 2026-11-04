@@ -3,6 +3,7 @@
 _Updated every session; under 40 lines. Longer history is in the ROADMAP progress log._
 
 ## Last task
+- 2026-11-04: #31 `buildkiosk_server::route_patterns()`, the public list of the server's routes (test: list = router).
 - 2026-11-04: #30 Timesheets at Read: the page, its sidebar link and `timesheet.list` open at Read and show the
   person's own hours read-only (the Subcontractor template); logging still needs Standard. PR "Fixes #30".
 - 2026-11-04: `TenantResolver` wired: every request resolves its company and goes to that company's own `App`

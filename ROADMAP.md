@@ -30,6 +30,7 @@ The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 2. The open parts of the tools already built, in the order of `docs/gaps.md`: inspections (4), drawings (5), schedule (6), financials (7), company reports (10), prequalification (11), languages (12).
 
 ## Progress log
+- 2026-11-04: Server: `route_patterns()` lists every route the web server serves (pattern and methods), kept by the same calls that register the routes; a test proves the list and the router match (#31).
 - 2026-11-04: Timesheets (#30): Read now opens the page and `timesheet.list` with the person's own hours, read-only, like every other tool's Read (the Subcontractor template gives Read); logging, submitting and deleting still need Standard.
 - 2026-11-04: Pages: a missing record, or one the person may not open, now answers 404 instead of 200 with the "not found" page (#22).
 - 2026-11-04: Regression suite part 2 (#3): submittal review and change-order approval, punch and observation comments, CSV imports for punch, observations and submittals, a `.xer` round trip between projects, every signed-in upload route checked for its size limit and for serving files only as downloads, and each role's tool pages against its permission template.

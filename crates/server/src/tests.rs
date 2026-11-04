@@ -4960,6 +4960,41 @@ async fn each_host_gets_its_own_company_and_cookies_do_not_cross() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+// -- the public route list (`route_patterns`)
+
+#[tokio::test]
+async fn the_route_list_matches_the_router() {
+    let list = route_patterns();
+    assert!(list.len() > 100, "only {} routes listed", list.len());
+    let mut seen = std::collections::HashSet::new();
+    for r in &list {
+        assert!(seen.insert(r.path.as_str()), "{} is listed twice", r.path);
+        assert!(!r.methods.is_empty(), "{} has no methods", r.path);
+    }
+    for (path, method) in [("/login", "POST"), ("/projects/{id}/rfis/{rid}", "GET"), ("/mcp", "DELETE"), ("/bid/{token}", "GET")] {
+        assert!(list.iter().any(|r| r.path == path && r.methods.contains(&method)), "{method} {path} is missing");
+    }
+
+    // Every listed route is served by the router: a method no route accepts gets "method not allowed" (not the
+    // fallback's "not found"), and the methods the router allows are the ones listed.
+    let dir = temp("route-list");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    for r in &list {
+        let uri: String = r.path.split('/').map(|seg| if seg.starts_with('{') { "1" } else { seg }).collect::<Vec<_>>().join("/");
+        let (st, h, _) = send(&app, Request::put(uri.as_str()).body(Body::empty()).unwrap()).await;
+        assert_eq!(st, StatusCode::METHOD_NOT_ALLOWED, "{} is not served by the router", r.path);
+        let allow = h.get(axum::http::header::ALLOW).and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
+        let allowed: Vec<&str> = allow.split(',').map(str::trim).collect();
+        for m in &r.methods {
+            assert!(allowed.contains(m), "{} lists {m} but the router allows {allow}", r.path);
+        }
+    }
+    // A path that isn't listed goes to the fallback instead (here, before first-run setup, a redirect to it).
+    assert_ne!(send(&app, Request::put("/no/such/page").body(Body::empty()).unwrap()).await.0, StatusCode::METHOD_NOT_ALLOWED);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[tokio::test]
 async fn refused_and_missing_pages_answer_404_not_200() {
     // Issue #22: the "not found" page used to come back with status 200.
