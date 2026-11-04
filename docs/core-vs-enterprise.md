@@ -56,6 +56,9 @@ Each trait has a default that behaves exactly like the core today, so single-com
 Other public hooks:
 - `buildkiosk-regress-kit` (`crates/regress-kit`): the regression suite's report, known-skips rules, HTTP client, page
   reader and server launcher, for suites outside the core (`docs/qa.md`).
+- `buildkiosk_server::route_patterns()`: every route the web server serves (pattern such as
+  `/projects/{id}/rfis/{rid}` and its methods), built by the same calls that build the router, so tests outside the
+  core can visit every page without reading its source.
 
 Still to add when the add-ons need them: a way to register extra commands (the command registry in
 `crates/engine/src/cmd/mod.rs` and the tool list in `crates/model/src/tool.rs` are fixed today), and a way to add

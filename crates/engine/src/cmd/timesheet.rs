@@ -2,6 +2,7 @@
 //!
 //! People log and submit their own hours. A Timesheets admin can log hours for anyone, approves
 //! or sends back submitted entries, and sees everyone's. Everyone else sees only their own.
+//! People with Read see their own hours and change nothing (the Subcontractor template).
 //! A day's hours for one person on one project total at most 24.
 
 use std::collections::BTreeMap;
@@ -126,7 +127,7 @@ pub const COMMANDS: &[CommandSpec] = &[
         "timesheet.list",
         "List hours",
         Tool::Timesheets,
-        Access::Project(Level::Standard),
+        Access::Project(Level::Read),
         "project: project id; person?: person id (admins; default yourself); from?, to?: dates; status?: draft|submitted|approved; deleted?: bool (admins)",
         list,
     ),

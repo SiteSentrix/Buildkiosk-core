@@ -33,10 +33,12 @@ pub fn page(req: &Req<'_>, id: Id<Project>, week: Option<Date>) -> Markup {
     let Some(p) = project_for(req, id) else { return not_found(req) };
     let state = req.engine.state();
     let lvl = view::level(state, req.actor(), id, Tool::Timesheets);
-    if lvl < Level::Standard {
+    // Read shows the person's own hours, like every other tool's Read; logging them needs Standard.
+    if lvl < Level::Read {
         return not_found(req);
     }
     let admin = lvl == Level::Admin;
+    let can_log = lvl >= Level::Standard;
     let start = week_start(week.unwrap_or_else(|| req.today()));
     let end = start.add_days(6).unwrap_or(start);
     let (prev, next) = (start.add_days(-7).unwrap_or(start), start.add_days(7).unwrap_or(start));
@@ -85,38 +87,42 @@ pub fn page(req: &Req<'_>, id: Id<Project>, week: Option<Date>) -> Markup {
                         td { (e.cost_code.and_then(|c| state.cost_codes.get(c)).map(|c| c.code.clone()).unwrap_or_default()) }
                         td { (e.description) @if !e.returned_note.is_empty() { " " span class="pill amber" { "Sent back: " (e.returned_note) } } }
                         td { (pill(e.status)) }
-                        td class="right" { @if e.status == TimeStatus::Draft { (button_form(req, "timesheet.delete", &here, &[("project", id.to_string()), ("id", e.id.to_string())], "Delete", "small danger")) } }
+                        td class="right" { @if can_log && e.status == TimeStatus::Draft { (button_form(req, "timesheet.delete", &here, &[("project", id.to_string()), ("id", e.id.to_string())], "Delete", "small danger")) } }
                     } } }
                     tfoot { tr { td { "Total" } td class="num" { (total(&mine)) } td colspan="4" {} } }
                 } }
             }
-            @if drafts > 0 {
+            @if can_log && drafts > 0 {
                 (button_form(req, "timesheet.submit", &here, &[("project", id.to_string()), ("from", start.to_string()), ("to", end.to_string())], "Submit the week for approval", "primary"))
             }
         }
-        div class="card" {
-            h2 { "Log hours" }
-            (command_form(req, "timesheet.add", &here, &here, html! {
-                input type="hidden" name="project" value=(id);
-                div class="form-grid" {
-                    (field("Day", "date", true, false, html! { select id="date" name="date" { @for d in &days { option value=(d.to_string()) selected[*d == req.today()] { (d.weekday().short()) " " (d.to_string()) } } } }))
-                    (field("Hours", "hours", true, false, html! { input type="text" id="hours" name="hours" required inputmode="decimal" placeholder="7.5"; }))
-                    (field("Cost code", "cost_code", false, false, html! { select id="cost_code" name="cost_code" { option value="" { "—" } @for c in &codes { option value=(c.id) { (c.code) " " (c.description) } } } }))
-                    (field("What you did", "description", false, false, html! { input type="text" id="description" name="description"; }))
-                }
-                @if admin {
-                    details class="disclosure" {
-                        summary { "Log the same hours for a crew" }
-                        @if !saved_crews.is_empty() {
-                            (field("A saved crew", "crew", false, false, html! { select id="crew" name="crew" { option value="" { "None" } @for c in &saved_crews { option value=(c.id) { (c.name) " (" (c.members.len()) ")" } } } }))
-                        }
-                        input type="hidden" name="people[]" value="";
-                        div class="options" { @for x in &people { label { input type="checkbox" name="people[]" value=(x.id); (x.name()) } } }
-                        p class="muted small" { "Each ticked person gets their own entry for this day. With nobody ticked, the hours are yours." }
+        @if can_log {
+            div class="card" {
+                h2 { "Log hours" }
+                (command_form(req, "timesheet.add", &here, &here, html! {
+                    input type="hidden" name="project" value=(id);
+                    div class="form-grid" {
+                        (field("Day", "date", true, false, html! { select id="date" name="date" { @for d in &days { option value=(d.to_string()) selected[*d == req.today()] { (d.weekday().short()) " " (d.to_string()) } } } }))
+                        (field("Hours", "hours", true, false, html! { input type="text" id="hours" name="hours" required inputmode="decimal" placeholder="7.5"; }))
+                        (field("Cost code", "cost_code", false, false, html! { select id="cost_code" name="cost_code" { option value="" { "—" } @for c in &codes { option value=(c.id) { (c.code) " " (c.description) } } } }))
+                        (field("What you did", "description", false, false, html! { input type="text" id="description" name="description"; }))
                     }
-                }
-                div class="form-actions" { button type="submit" class="btn primary" { "Add hours" } }
-            }))
+                    @if admin {
+                        details class="disclosure" {
+                            summary { "Log the same hours for a crew" }
+                            @if !saved_crews.is_empty() {
+                                (field("A saved crew", "crew", false, false, html! { select id="crew" name="crew" { option value="" { "None" } @for c in &saved_crews { option value=(c.id) { (c.name) " (" (c.members.len()) ")" } } } }))
+                            }
+                            input type="hidden" name="people[]" value="";
+                            div class="options" { @for x in &people { label { input type="checkbox" name="people[]" value=(x.id); (x.name()) } } }
+                            p class="muted small" { "Each ticked person gets their own entry for this day. With nobody ticked, the hours are yours." }
+                        }
+                    }
+                    div class="form-actions" { button type="submit" class="btn primary" { "Add hours" } }
+                }))
+            }
+        } @else {
+            p class="muted" { "You can see your hours here; logging hours needs Standard access to Timesheets." }
         }
         @if admin {
             div class="card" {
