@@ -53,6 +53,13 @@ photos, which are checked by their first bytes and shown inline as JPEG, PNG, GI
 Each company is a separate state, journal and blob store under `companies/<slug>`; nothing reads across
 companies. Secrets (password hashes, API tokens, sessions) live in the credential store, never in the journal.
 
+Every request first goes through a `TenantResolver` (`crates/core/src/ext.rs`), which names the company from the
+`Host` header; `Tenants` (`crates/server/src/tenants.rs`) hands the request to that company's own `App`, with its own
+state, journal, files, credentials and sessions. The default resolver, `SingleCompany`, sends every request to the
+one company the server was started with, so a self-hosted server behaves as it always did. A build that serves
+several companies passes its own resolver and a way to open companies, and gives each company its own signing key
+(`App::with_company_secret`) so a cookie, CSRF token or link made for one company is refused by every other.
+
 ## The sheet viewer
 
 Drawings have two viewers on one page; the second improves the first and is optional.
