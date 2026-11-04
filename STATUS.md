@@ -3,6 +3,7 @@
 _Updated every session; under 40 lines. Longer history is in the ROADMAP progress log._
 
 ## Last task
+- 2026-11-04: #34 `CommandGuard` in the engine (`App::with_command_guard`) and `Tenants::remove`.
 - 2026-11-04: #32 regression tools as a library (`crates/regress-kit`); stories unchanged.
 - 2026-11-04: #31 `buildkiosk_server::route_patterns()`, the public list of the server's routes (test: list = router).
 - 2026-11-04: #30 Timesheets at Read: the page, its sidebar link and `timesheet.list` open at Read and show the

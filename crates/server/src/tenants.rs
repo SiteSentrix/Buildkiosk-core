@@ -63,6 +63,15 @@ impl Tenants {
         self.loaded.write().unwrap_or_else(|e| e.into_inner()).insert(slug.to_string(), (app, pages));
     }
 
+    /// Closes `slug` without a restart (for example after the company was deleted or restored on disk): its timed work
+    /// stops and the next request for it opens it again (with the opener) or answers 404. Requests already running
+    /// finish on the app returned here. `None` when it wasn't open.
+    pub fn remove(&self, slug: &str) -> Option<Shared> {
+        let (app, _) = self.loaded.write().unwrap_or_else(|e| e.into_inner()).remove(slug)?;
+        app.stop_jobs();
+        Some(app)
+    }
+
     /// The company a request to `host` belongs to, as the resolver names it.
     pub fn company_for(&self, host: Option<&str>) -> Option<String> {
         self.resolver.company_for(host)

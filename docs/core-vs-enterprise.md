@@ -54,6 +54,11 @@ Each trait has a default that behaves exactly like the core today, so single-com
 | `FeatureFlags` | `NoFlags` (nothing optional is on) | showing or hiding features a build adds | No |
 
 Other public hooks:
+- `buildkiosk_engine::CommandGuard` (`Engine::set_command_guard`, `App::with_command_guard`): asked before every
+  command that can change something, whatever the entry point (pages, HTTP API, MCP, the pages that run commands
+  themselves), for plan limits or a read-only mode. A refusal is a normal `Forbidden` command error. Default: none.
+- `Tenants::remove(slug)`: closes an open company without a restart (its timed work stops; the next request opens it
+  again).
 - `buildkiosk-regress-kit` (`crates/regress-kit`): the regression suite's report, known-skips rules, HTTP client, page
   reader and server launcher, for suites outside the core (`docs/qa.md`).
 - `buildkiosk_server::route_patterns()`: every route the web server serves (pattern such as

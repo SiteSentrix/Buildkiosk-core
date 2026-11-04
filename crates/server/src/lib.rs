@@ -112,6 +112,8 @@ const MCP_IDLE_MS: i64 = 60 * 60 * 1000;
 pub struct App {
     data: Arc<DataDir>,
     inner: Mutex<Inner>,
+    /// The timed work started for this company, stopped when it is closed ([`Tenants::remove`]).
+    jobs: Mutex<Vec<tokio::task::AbortHandle>>,
     /// The key that signs this company's session cookies, CSRF tokens and links, when it is not the instance secret
     /// (see [`App::with_company_secret`]).
     company_key: Option<[u8; 32]>,
@@ -173,6 +175,7 @@ impl App {
                 portal_limiter: RateLimit::default(),
                 mcp_sessions: HashMap::new(),
             }),
+            jobs: Mutex::new(Vec::new()),
             company_key: None,
             secure: false,
             backups: None,
@@ -230,6 +233,25 @@ impl App {
         }
         .map_err(|e| e.to_string())?;
         begun.finish().map_err(|e| e.to_string())
+    }
+
+    /// Asks `guard` before every command that can change something, from every entry point (pages, the HTTP API,
+    /// MCP): a host's plan limits or read-only mode. Its refusal is a normal command error (403 in the API, the
+    /// error message on a page, `isError` in MCP). Needs an open company (it is set on the company's engine); without
+    /// it, every command runs as before.
+    pub fn with_command_guard(self, guard: Arc<dyn buildkiosk_engine::CommandGuard>) -> App {
+        if let Some(t) = self.lock().tenant.as_mut() {
+            t.engine.set_command_guard(Some(guard));
+        }
+        self
+    }
+
+    /// Stops this company's timed work (mail, reminders, recurring forms, reports, backups). A pass already running
+    /// finishes.
+    fn stop_jobs(&self) {
+        for job in self.jobs.lock().unwrap_or_else(|e| e.into_inner()).drain(..) {
+            job.abort();
+        }
     }
 
     /// Marks the app as served over HTTPS (behind a TLS-terminating proxy): session and CSRF
@@ -806,13 +828,16 @@ pub async fn serve_tenants(tenants: Arc<Tenants>, bind: SocketAddr) -> Result<()
 /// Starts the timed work for one company (mail, reminders, recurring forms, scheduled reports, backups). Needs a
 /// running Tokio runtime.
 fn start_jobs(app: &Shared) {
-    tokio::spawn(mail_loop(app.clone()));
-    tokio::spawn(prequal_loop(app.clone()));
-    tokio::spawn(form_loop(app.clone()));
-    tokio::spawn(report_loop(app.clone()));
+    let mut jobs = vec![
+        tokio::spawn(mail_loop(app.clone())).abort_handle(),
+        tokio::spawn(prequal_loop(app.clone())).abort_handle(),
+        tokio::spawn(form_loop(app.clone())).abort_handle(),
+        tokio::spawn(report_loop(app.clone())).abort_handle(),
+    ];
     if app.backups.is_some() {
-        tokio::spawn(backup_loop(app.clone()));
+        jobs.push(tokio::spawn(backup_loop(app.clone())).abort_handle());
     }
+    app.jobs.lock().unwrap_or_else(|e| e.into_inner()).extend(jobs);
 }
 
 async fn security_headers(State(app): State<Shared>, mut res: Response) -> Response {
