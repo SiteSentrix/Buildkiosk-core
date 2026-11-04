@@ -1,0 +1,10 @@
+{
+  "about": "Allowed skips and known failures for the regression suite (crates/app/tests/regress, docs/qa.md). A check that fails or skips fails the gate unless it is listed here. Each entry: check (the id in the report, `area › name`), reason, expires (YYYY-MM-DD, valid through that day, at most 14 days ahead; an expired entry fails the gate), issue (the bug filed for it), optional quarantine: true (a failing check is reported as `known` until it expires). Never weaken a check to get green: list it here with its issue. Changes need review.",
+  "skips": [
+    {
+      "check": "upgrade › the previous release's data folder opens with this build",
+      "reason": "no published release yet to upgrade from; the first release tag makes this check run (regress.yml downloads the previous release's Linux build)",
+      "expires": "2026-11-17"
+    }
+  ]
+}
