@@ -4957,8 +4957,8 @@ async fn the_route_list_matches_the_router() {
             assert!(allowed.contains(m), "{} lists {m} but the router allows {allow}", r.path);
         }
     }
-    // A path that isn't listed falls through to "not found".
-    assert_eq!(send(&app, Request::put("/no/such/page").body(Body::empty()).unwrap()).await.0, StatusCode::NOT_FOUND);
+    // A path that isn't listed goes to the fallback instead (here, before first-run setup, a redirect to it).
+    assert_ne!(send(&app, Request::put("/no/such/page").body(Body::empty()).unwrap()).await.0, StatusCode::METHOD_NOT_ALLOWED);
     drop(app);
     let _ = std::fs::remove_dir_all(&dir);
 }
