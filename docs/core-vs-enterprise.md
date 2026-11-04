@@ -1,6 +1,6 @@
 # Core and add-ons: what lives where
 
-_Status: 2026-11-04._
+_Status: 2026-11-04 (tenant resolver wired)._
 
 BuildKiosk comes in two parts:
 
@@ -45,7 +45,7 @@ Each trait has a default that behaves exactly like the core today, so single-com
 
 | Trait | Default | Used for | Wired in yet? |
 |---|---|---|---|
-| `TenantResolver` | `SingleCompany` (the company the server was started with) | choosing the company per request | No: the server holds one `tenant` directly (~100 call sites in `crates/server`); moving them behind a per-request handle is the next refactor |
+| `TenantResolver` | `SingleCompany` (the company the server was started with) | choosing the company per request | Yes: every request is resolved first and handled by that company's own `App` (`crates/server/src/tenants.rs`, `serve_tenants`, `App::open_shared`, `App::with_company_secret`). The handlers still reach their company through `App` (one per company), so the ~100 call sites did not need to change. Timed work runs per company. Scheduled backups still copy the whole data directory |
 | `Authenticator` | `LocalOnly` (local argon2 passwords) | sign-in from accounts kept elsewhere | No: `crates/server/src/auth.rs` checks local credentials only |
 | `InviteAccept` | `LocalAccounts` (accepting makes a local account) | linking an invited person to an existing account | No: the invite-by-email flow itself is still to build (docs/gaps.md) |
 | `MailSender` | none in core (SMTP in `crates/server/src/mail.rs`) | a different mail service per company | No: `mail::send` is called directly |

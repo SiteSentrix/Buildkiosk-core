@@ -14,6 +14,7 @@ mod prequal_portal;
 mod render;
 pub mod s3;
 mod sign_portal;
+mod tenants;
 mod xlsx;
 mod zip;
 
@@ -56,6 +57,7 @@ use serde_json::{Map, Value, json};
 use tower_http::catch_panic::CatchPanicLayer;
 
 use auth::{CSRF_COOKIE, RateLimit, SESSION_COOKIE};
+pub use tenants::{Opener, Tenants};
 
 /// Largest form or API body accepted.
 const MAX_BODY: usize = 1024 * 1024;
@@ -103,10 +105,14 @@ struct McpSession {
 const MAX_MCP_SESSIONS: usize = 200;
 const MCP_IDLE_MS: i64 = 60 * 60 * 1000;
 
-/// The running server's state: one company in one data directory.
+/// The running server's state: one company in one data directory. A server that answers for several
+/// companies holds one `App` per company (see [`Tenants`]); they share the data directory.
 pub struct App {
-    data: DataDir,
+    data: Arc<DataDir>,
     inner: Mutex<Inner>,
+    /// The key that signs this company's session cookies, CSRF tokens and links, when it is not the instance secret
+    /// (see [`App::with_company_secret`]).
+    company_key: Option<[u8; 32]>,
     /// Serving behind HTTPS: cookies get `Secure` and responses carry HSTS.
     secure: bool,
     /// Backups taken on a schedule while the server runs.
@@ -136,6 +142,11 @@ impl App {
     /// Opens `company` (or the only/first one in the directory). A directory with no company
     /// starts in first-run setup.
     pub fn open(data: DataDir, company: Option<&str>) -> Result<App, String> {
+        App::open_shared(Arc::new(data), company)
+    }
+
+    /// Like [`App::open`], for a data directory that other companies' `App`s also use.
+    pub fn open_shared(data: Arc<DataDir>, company: Option<&str>) -> Result<App, String> {
         let slugs = data.companies().map_err(|e| e.to_string())?;
         let slug = match company {
             Some(c) => Some(c.to_string()),
@@ -160,6 +171,7 @@ impl App {
                 portal_limiter: RateLimit::default(),
                 mcp_sessions: HashMap::new(),
             }),
+            company_key: None,
             secure: false,
             backups: None,
         })
@@ -231,8 +243,26 @@ impl App {
         self.inner.lock().unwrap_or_else(|e| e.into_inner())
     }
 
+    /// Signs this company's session cookies, CSRF tokens and links with a key of its own, made from the instance
+    /// secret and the company's slug, instead of the instance secret itself. A server answering for several companies
+    /// out of one data directory uses it so a cookie or link made for one company is refused by every other. (A
+    /// single-company server doesn't: changing the key would sign everyone out and break the links already sent.)
+    pub fn with_company_secret(mut self) -> Result<App, String> {
+        let slug = self.company().ok_or("a company key needs a company")?;
+        self.company_key = Some(auth::derive_key(self.data.secret(), &format!("company:{slug}")).ok_or("could not derive the company key")?);
+        Ok(self)
+    }
+
+    /// The slug of the company this app serves (`None` before first-run setup).
+    pub fn company(&self) -> Option<String> {
+        self.lock().tenant.as_ref().map(|t| t.slug.clone())
+    }
+
     fn secret(&self) -> &[u8] {
-        self.data.secret()
+        match &self.company_key {
+            Some(k) => k,
+            None => self.data.secret(),
+        }
     }
 }
 
@@ -746,10 +776,23 @@ pub fn router(app: Shared) -> Router {
         .with_state(app)
 }
 
-/// Serves until the process is stopped.
+/// Serves one company until the process is stopped. Requests still go through the tenant resolver: the default
+/// one sends every request to this company, so nothing changes for a single-company server.
 pub async fn serve(app: Shared, bind: SocketAddr) -> Result<(), String> {
+    serve_tenants(Arc::new(Tenants::single(app)), bind).await
+}
+
+/// Serves every company `tenants` answers for until the process is stopped.
+pub async fn serve_tenants(tenants: Arc<Tenants>, bind: SocketAddr) -> Result<(), String> {
     let listener = tokio::net::TcpListener::bind(bind).await.map_err(|e| format!("cannot listen on {bind}: {e}"))?;
     log::info!("listening on http://{bind}");
+    tenants.start_jobs();
+    axum::serve(listener, tenants.into_router()).await.map_err(|e| e.to_string())
+}
+
+/// Starts the timed work for one company (mail, reminders, recurring forms, scheduled reports, backups). Needs a
+/// running Tokio runtime.
+fn start_jobs(app: &Shared) {
     tokio::spawn(mail_loop(app.clone()));
     tokio::spawn(prequal_loop(app.clone()));
     tokio::spawn(form_loop(app.clone()));
@@ -757,7 +800,6 @@ pub async fn serve(app: Shared, bind: SocketAddr) -> Result<(), String> {
     if app.backups.is_some() {
         tokio::spawn(backup_loop(app.clone()));
     }
-    axum::serve(listener, router(app)).await.map_err(|e| e.to_string())
 }
 
 async fn security_headers(State(app): State<Shared>, mut res: Response) -> Response {

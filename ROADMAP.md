@@ -31,6 +31,7 @@ The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 
 ## Progress log
 - 2026-11-04: QA bot regression suite (#3): the real program started on a throwaway demo data folder and driven over HTTP by every role (route table, crawl, tool loops with the journal checked, imports and exports, safety, restart and upgrade), `@smoke` on pull requests and `@release` nightly and for tags, report on the `qa-reports` branch, `qa/known-skips.json` (`docs/qa.md`).
+- 2026-11-04: Server: every request resolves its company through the `TenantResolver` hook and is handled by that company's own state, store and sessions (`crates/server/src/tenants.rs`); the default keeps one company per server, unchanged.
 - 2026-10-20: Schedule: resource levelling (preview and apply on the resources page; `schedule.level_plan`, `schedule.level`), and resources, limits and the working calendar read from Microsoft Project XML files on request.
 - 2026-10-14: Releases: pushing a version tag runs the gate, builds the program for Linux (static), macOS and Windows with the sheet viewer embedded, checksums and attests the archives, and publishes a GitHub release; `install.sh` installs one after checking its checksum (`docs/deployment.md`). `buildkiosk version` added.
 - 2026-10-16: Container image: the release workflow also builds a multi-architecture (Linux x86_64 and aarch64) image from the same static binaries and pushes it to `ghcr.io/bwattendorf/buildkiosk-core` on a tag (`contrib/docker/Dockerfile`, `docs/deployment.md`).

@@ -3,6 +3,9 @@
 _Updated every session; under 40 lines. Longer history is in the ROADMAP progress log._
 
 ## Last task
+- 2026-11-04: `TenantResolver` wired: every request resolves its company and goes to that company's own `App`
+  (`crates/server/src/tenants.rs`); the default (`SingleCompany`) keeps single-company servers unchanged. Tests for
+  both. PR "Wire the tenant resolver" (needs-review).
 - 2026-11-04: initial core copied from the earlier private workspace (one fresh commit, no history); vendor
   wording removed; `public-guard` CI job; extension traits in `crates/core/src/ext.rs`; agent kit and Claude Code
   hooks. PR "Initial core from buildkiosk" (needs-review).
@@ -12,8 +15,8 @@ _Updated every session; under 40 lines. Longer history is in the ROADMAP progres
 
 ## Next (from docs/core-vs-enterprise.md and docs/gaps.md)
 1. Invite by email with an accept flow and per-project roles (uses `ext::InviteAccept`).
-2. Wire the extension traits into the server (`TenantResolver`, `Authenticator`, `MailSender`, `BlobStore`,
-   `BackgroundJob`, `FeatureFlags`); the tenant one is the big refactor (~100 call sites).
+2. Wire the other extension traits into the server (`Authenticator`, `MailSender`, `BlobStore`, `BackgroundJob`,
+   `FeatureFlags`); `TenantResolver` is done.
 3. Owner/client portal (reuse the token-portal pattern from the bidder and prequal portals).
 
 ## Blockers / owner decisions

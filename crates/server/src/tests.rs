@@ -4786,3 +4786,144 @@ async fn the_other_party_signs_a_contract_through_its_link() {
     drop(app);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// -- choosing the company per request (`Tenants`, the `TenantResolver` hook)
+
+async fn send_via(pages: &Router, host: Option<&str>, mut req: Request<Body>) -> (StatusCode, HeaderMap, String) {
+    if let Some(h) = host {
+        req.headers_mut().insert(axum::http::header::HOST, HeaderValue::from_str(h).unwrap());
+    }
+    let res = pages.clone().oneshot(req).await.unwrap();
+    let (parts, body) = res.into_parts();
+    let bytes = body.collect().await.unwrap().to_bytes();
+    (parts.status, parts.headers, String::from_utf8_lossy(&bytes).into_owned())
+}
+
+async fn sign_in_via(pages: &Router, host: Option<&str>, email: &str, password: &str) -> String {
+    let (_, h, page) = send_via(pages, host, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let login = format!("_csrf={}&email={}&password={password}", field(&page, "_csrf"), email.replace('@', "%40"));
+    let (st, h, _) = send_via(pages, host, post("/login", &anon, login)).await;
+    assert_eq!(st, StatusCode::SEE_OTHER, "sign-in to {host:?} as {email}");
+    let session = cookies(&h);
+    assert!(session.starts_with("bk_session="), "sign-in to {host:?} as {email} gave no session");
+    session
+}
+
+/// A company with its first admin, made the way first-run setup makes one.
+fn make_company(data: &DataDir, slug: &str, name: &str, email: &str, password: &str) {
+    let mut t = data.create(slug).unwrap();
+    let params = json!({"name": name, "slug": slug, "admin_first_name": "Ada", "admin_last_name": "Admin", "admin_email": email});
+    let out = t.engine.execute(&mut t.store, Actor::System, Timestamp::from_millis(now_ms()), "company.setup", &params).unwrap();
+    let admin = out.get("admin").and_then(Value::as_u64).unwrap();
+    let mut creds = Credentials::default();
+    creds.set_password(admin, password, Timestamp::from_millis(now_ms())).unwrap();
+    t.store.save_credentials(&creds).unwrap();
+}
+
+#[tokio::test]
+async fn one_company_answers_every_request_through_the_resolver() {
+    let dir = temp("tenants-single");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    let pages = Arc::new(Tenants::single(app.clone())).into_router();
+
+    // First-run setup works through the resolver, whatever host the request names (or none).
+    let (st, h, _) = send_via(&pages, Some("anything.example.test"), Request::get("/").body(Body::empty()).unwrap()).await;
+    assert_eq!((st, h.get(LOCATION).unwrap().to_str().unwrap()), (StatusCode::SEE_OTHER, "/setup"));
+    let (_, h, page) = send_via(&pages, None, Request::get("/setup").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body = format!(
+        "_csrf={}&name=Acme+Builders&first_name=Ada&last_name=Admin&email=ada%40example.com&password=correct-horse-battery",
+        field(&page, "_csrf")
+    );
+    let (st, h, _) = send_via(&pages, Some("other.example.test:8080"), post("/setup", &anon, body)).await;
+    assert_eq!(st, StatusCode::SEE_OTHER);
+    let session = cookies(&h);
+    assert_eq!(app.company().as_deref(), Some("acme-builders"));
+
+    // The same company answers on any host, and the cookies are signed exactly as before: a session made through the
+    // resolver works on the plain pages and the other way round.
+    let (st, _, home) = send_via(&pages, Some("third.example.test"), Request::get("/").header("cookie", &session).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    let csrf = field(&home, "_csrf");
+    let (st, ..) = send(&app, post("/do/project.create", &session, format!("_csrf={csrf}&_next=/&name=Tower+One"))).await;
+    assert_eq!(st, StatusCode::SEE_OTHER);
+    let direct = sign_in_via(&router(app.clone()), None, "ada@example.com", "correct-horse-battery").await;
+    let (st, _, home) = send_via(&pages, None, Request::get("/").header("cookie", &direct).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(home.contains("Tower One"));
+    drop(pages);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A resolver that takes the company from the first label of the host name (`north.example.test` is `north`).
+struct FirstLabel;
+
+impl buildkiosk_core::ext::TenantResolver for FirstLabel {
+    fn company_for(&self, host: Option<&str>) -> Option<String> {
+        let label = host?.split('.').next()?;
+        buildkiosk_store::valid_slug(label).then(|| label.to_string())
+    }
+}
+
+#[tokio::test]
+async fn each_host_gets_its_own_company_and_cookies_do_not_cross() {
+    let dir = temp("tenants-many");
+    let data = Arc::new(DataDir::open(&dir).unwrap());
+    make_company(&data, "north", "North Builders", "ada@north.example.com", "north-password-1");
+    make_company(&data, "south", "South Builders", "ada@south.example.com", "south-password-1");
+    let shared = data.clone();
+    let open: Opener = Box::new(move |slug: &str| {
+        if !shared.companies().map_err(|e| e.to_string())?.iter().any(|s| s == slug) {
+            return Ok(None);
+        }
+        App::open_shared(shared.clone(), Some(slug))?.with_company_secret().map(Some)
+    });
+    let tenants = Arc::new(Tenants::new(Box::new(FirstLabel), Some(open)));
+    let pages = tenants.clone().into_router();
+    let (north, south) = (Some("north.example.test"), Some("south.example.test"));
+
+    // Each company signs in its own people only.
+    let n = sign_in_via(&pages, north, "ada@north.example.com", "north-password-1").await;
+    let s = sign_in_via(&pages, south, "ada@south.example.com", "south-password-1").await;
+    let (_, h, page) = send_via(&pages, south, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let login = format!("_csrf={}&email=ada%40north.example.com&password=north-password-1", field(&page, "_csrf"));
+    let (_, h2, _) = send_via(&pages, south, post("/login", &cookies(&h), login)).await;
+    assert!(!cookies(&h2).contains("bk_session="), "a person of one company can't sign in to another");
+
+    // Each company's records stay in its own store.
+    let (_, _, home) = send_via(&pages, north, Request::get("/").header("cookie", &n).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    let (st, ..) = send_via(&pages, north, post("/do/project.create", &n, format!("_csrf={csrf}&_next=/&name=Northern+Tower"))).await;
+    assert_eq!(st, StatusCode::SEE_OTHER);
+    let (st, _, home) = send_via(&pages, north, Request::get("/").header("cookie", &n).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(home.contains("Northern Tower"));
+    let (st, _, home) = send_via(&pages, south, Request::get("/").header("cookie", &s).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(!home.contains("Northern Tower"), "the other company's project must not show");
+    assert_eq!(tenants.get("north").and_then(|a| a.company()).as_deref(), Some("north"));
+    assert_eq!(tenants.get("south").and_then(|a| a.company()).as_deref(), Some("south"));
+
+    // A session cookie (and its CSRF token) made for one company is refused by the other, even with the same person id.
+    let (st, h, _) = send_via(&pages, south, Request::get("/").header("cookie", &n).body(Body::empty()).unwrap()).await;
+    assert_eq!((st, h.get(LOCATION).unwrap().to_str().unwrap()), (StatusCode::SEE_OTHER, "/login"));
+    let (st, ..) = send_via(&pages, south, post("/do/project.create", &n, format!("_csrf={csrf}&_next=/&name=Planted"))).await;
+    assert_ne!(st, StatusCode::OK);
+    let (_, _, home) = send_via(&pages, south, Request::get("/").header("cookie", &s).body(Body::empty()).unwrap()).await;
+    assert!(!home.contains("Planted"));
+    // The API refuses too, without a token of that company.
+    let (st, ..) = send_via(&pages, south, Request::post("/api/v1/commands/project.list").header("cookie", &n).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::UNAUTHORIZED);
+
+    // A host no company answers on, a company that doesn't exist, and a request with no host all get 404.
+    for host in [Some("nobody.example.test"), Some("-bad-.example.test"), None] {
+        let (st, ..) = send_via(&pages, host, Request::get("/login").body(Body::empty()).unwrap()).await;
+        assert_eq!(st, StatusCode::NOT_FOUND, "{host:?}");
+    }
+    drop(pages);
+    drop(tenants);
+    drop(data);
+    let _ = std::fs::remove_dir_all(&dir);
+}
