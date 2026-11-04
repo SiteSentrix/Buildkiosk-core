@@ -7,12 +7,11 @@
 
 use std::collections::HashMap;
 
-use axum::Router;
+use crate::route_list::{Routes, get, post};
 use axum::body::Bytes;
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::Response;
-use axum::routing::{get, post};
 use buildkiosk_engine::Actor;
 use buildkiosk_engine::cmd::signing::Kind;
 use buildkiosk_engine::model::finance::{MAX_REMINDERS, SignatureStatus};
@@ -22,7 +21,7 @@ use super::{App, Shared, auth, flash_from, get_form, html, mail, now_ms, parse_f
 
 type Q = Query<HashMap<String, String>>;
 
-pub(crate) fn routes(router: Router<Shared>) -> Router<Shared> {
+pub(crate) fn routes(router: Routes) -> Routes {
     router.route("/sign/{token}", get(page)).route("/sign/{token}/sign", post(sign)).route("/sign/{token}/decline", post(decline))
 }
 

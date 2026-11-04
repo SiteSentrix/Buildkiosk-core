@@ -49,6 +49,8 @@ pub const TABLE: &[(&str, Class)] = &[
     // apps and tooling
     ("buildkiosk", Class::Exempt),
     ("xtask", Class::Exempt),
+    // The regression suite's tools (test tooling, used as a dev-dependency only).
+    ("regress-kit", Class::Exempt),
 ];
 
 /// Allowed orderings within a layer (earlier may be used by later).

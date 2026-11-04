@@ -7,12 +7,11 @@
 
 use std::collections::HashMap;
 
-use axum::Router;
+use crate::route_list::{Routes, get, post};
 use axum::body::Bytes;
 use axum::extract::{Multipart, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::Response;
-use axum::routing::{get, post};
 use buildkiosk_engine::Actor;
 use serde_json::{Map, Value, json};
 
@@ -21,7 +20,7 @@ use super::{App, Shared, auth, flash_from, get_form, html, mail, now_ms, parse_f
 
 type Q = Query<HashMap<String, String>>;
 
-pub(crate) fn routes(router: Router<Shared>) -> Router<Shared> {
+pub(crate) fn routes(router: Routes) -> Routes {
     router
         .route("/prequal/{token}", get(page))
         .route("/prequal/{token}/save", post(save))

@@ -1,0 +1,15 @@
+[package]
+name = "buildkiosk-regress-kit"
+description = "The regression suite's tools: the report and gate, the known-skips rules, an HTTP client, a page reader and a server launcher."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
