@@ -31,6 +31,7 @@ The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 
 ## Progress log
 - 2026-11-04: Pages: a missing record, or one the person may not open, now answers 404 instead of 200 with the "not found" page (#22).
+- 2026-11-04: Regression suite part 2 (#3): submittal review and change-order approval, punch and observation comments, CSV imports for punch, observations and submittals, a `.xer` round trip between projects, every signed-in upload route checked for its size limit and for serving files only as downloads, and each role's tool pages against its permission template.
 - 2026-11-04: QA bot regression suite (#3): the real program started on a throwaway demo data folder and driven over HTTP by every role (route table, crawl, tool loops with the journal checked, imports and exports, safety, restart and upgrade), `@smoke` on pull requests and `@release` nightly and for tags, report on the `qa-reports` branch, `qa/known-skips.json` (`docs/qa.md`).
 - 2026-11-04: Server: every request resolves its company through the `TenantResolver` hook and is handled by that company's own state, store and sessions (`crates/server/src/tenants.rs`); the default keeps one company per server, unchanged.
 - 2026-10-20: Schedule: resource levelling (preview and apply on the resources page; `schedule.level_plan`, `schedule.level`), and resources, limits and the working calendar read from Microsoft Project XML files on request.
