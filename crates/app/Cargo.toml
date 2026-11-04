@@ -11,6 +11,13 @@ repository.workspace = true
 name = "buildkiosk"
 path = "src/main.rs"
 
+# The QA bot's black-box regression suite (docs/qa.md): starts this program and drives it over HTTP. Its own
+# `main` (no test harness); it runs only with BK_REGRESS=smoke or BK_REGRESS=release.
+[[test]]
+name = "regress"
+path = "tests/regress/main.rs"
+harness = false
+
 [dependencies]
 buildkiosk-core = { workspace = true }
 buildkiosk-engine = { workspace = true }

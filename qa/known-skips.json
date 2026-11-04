@@ -1,0 +1,45 @@
+{
+  "about": "Allowed skips and known failures for the regression suite (crates/app/tests/regress, docs/qa.md). A check that fails or skips fails the gate unless it is listed here. Each entry: check (the id in the report, `area › name`), reason, expires (YYYY-MM-DD, valid through that day, at most 14 days ahead; an expired entry fails the gate), issue (the bug filed for it), optional quarantine: true (a failing check is reported as `known` until it expires). Never weaken a check to get green: list it here with its issue. Changes need review.",
+  "skips": [
+    {
+      "check": "upgrade › the previous release's data folder opens with this build",
+      "reason": "no published release yet to upgrade from; the first release tag makes this check run (regress.yml downloads the previous release's Linux build)",
+      "expires": "2026-11-17"
+    },
+    {
+      "check": "sign-in › signing out ends the session (the old cookie no longer works)",
+      "reason": "FAILS (real finding): the session cookie from before sign-out still opens every page until it expires; sign-out ends nothing on the server",
+      "expires": "2026-11-17",
+      "issue": 21,
+      "quarantine": true
+    },
+    {
+      "check": "access › refused and missing pages answer 403, 404 or a redirect, not 200",
+      "reason": "FAILS (real finding): the \"not found\" page is served with status 200 (/settings for the subcontractor, a made-up RFI id)",
+      "expires": "2026-11-17",
+      "issue": 22,
+      "quarantine": true
+    },
+    {
+      "check": "crawl › subcontractor: every link shown opens (no 4xx, no \"not found\" page)",
+      "reason": "FAILS (real finding): the schedule look-ahead links to task pages read-only people can't open",
+      "expires": "2026-11-17",
+      "issue": 23,
+      "quarantine": true
+    },
+    {
+      "check": "crawl › owner and design team: every link shown opens (no 4xx, no \"not found\" page)",
+      "reason": "FAILS (real finding): the schedule look-ahead links to task pages read-only people can't open",
+      "expires": "2026-11-17",
+      "issue": 23,
+      "quarantine": true
+    },
+    {
+      "check": "crawl › admin: every link shown opens (no 4xx, no \"not found\" page)",
+      "reason": "FAILS (real finding): the commitments list links to /prequalification/{vendor} for vendors without a prequalification",
+      "expires": "2026-11-17",
+      "issue": 24,
+      "quarantine": true
+    }
+  ]
+}

@@ -11,7 +11,7 @@ _Updated every session; under 40 lines. Longer history is in the ROADMAP progres
   hooks. PR "Initial core from buildkiosk" (needs-review).
 
 ## In progress
-- Nothing.
+- #3 QA bot regression suite (`docs/qa.md`, `.github/workflows/regress.yml`): PR open, needs-review.
 
 ## Next (from docs/core-vs-enterprise.md and docs/gaps.md)
 1. Invite by email with an accept flow and per-project roles (uses `ext::InviteAccept`).

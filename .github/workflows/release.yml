@@ -1,9 +1,10 @@
 # Builds and publishes a BuildKiosk release.
 #
 # Push a version tag that matches the workspace version in Cargo.toml (for example `v0.1.0` for version 0.1.0):
-# the full gate (`cargo xtask ci`) runs, the program is built for Linux, macOS and Windows with the browser sheet
-# viewer embedded, the Windows and macOS programs are signed (below), each archive is checksummed and given a GitHub
-# build attestation, and a GitHub release is created with the archives, SHA256SUMS and install.sh, and a
+# the full gate (`cargo xtask ci`) and the regression suite's release checks (regress.yml; nothing is published
+# when they fail) run, the program is built for Linux, macOS and Windows with the browser sheet viewer embedded,
+# the Windows and macOS programs are signed (below), each archive is checksummed and given a GitHub build
+# attestation, and a GitHub release is created with the archives, SHA256SUMS and install.sh, and a
 # multi-architecture container image (Linux x86_64 and aarch64) is pushed to ghcr.io/<owner>/buildkiosk. Versions
 # below 1.0.0 (or with a `-suffix`) are marked as pre-releases. Nothing is published until a tag is pushed.
 # If a release for the tag already exists, its files are replaced by this run's.
@@ -97,6 +98,17 @@ jobs:
         with:
           key: ci
       - run: cargo xtask ci
+
+  # The QA bot's release suite (regress.yml, docs/qa.md): the program driven over HTTP by every role. The release is
+  # not published when it fails.
+  regress:
+    name: Regression suite (release)
+    needs: version
+    permissions:
+      contents: write # publishes the report on the qa-reports branch
+    uses: ./.github/workflows/regress.yml
+    with:
+      suite: release
 
   # The sheet viewer (Rust to WebAssembly plus the generated loader) is built once; each platform embeds it.
   viewer:
@@ -359,7 +371,7 @@ jobs:
 
   release:
     name: Publish release
-    needs: [version, gate, package]
+    needs: [version, gate, regress, package]
     if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:

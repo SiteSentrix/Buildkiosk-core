@@ -1,0 +1,135 @@
+# The QA bot's regression suite (crates/app/tests/regress, docs/qa.md): the real program, started on a throwaway data
+# folder with the fictional demo company and driven over HTTP by every role. Two suites:
+# - smoke: every pull request (fast). Label a pull request `regress-release` to run the full suite on it instead.
+# - release: every check. Nightly (03:10 UTC), by hand, and for a version tag (release.yml calls this workflow and
+#   does not publish when it fails).
+# A check that fails or skips fails the run unless qa/known-skips.json lists it (reason, issue, expiry of at most two
+# weeks). The report goes to the job summary, a workflow artifact and the `qa-reports` branch (never main): main's
+# runs under qa/, other branches' and pull requests' under qa/branches/<branch>/.
+name: regress
+run-name: regress ${{ inputs.suite || (github.event_name == 'pull_request' && 'pull request') || 'nightly' }} (${{ github.head_ref || github.ref_name }})
+
+on:
+  pull_request:
+  schedule:
+    - cron: '10 3 * * *' # 03:10 UTC nightly
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'smoke (fast) or release (everything)'
+        type: choice
+        options: [release, smoke]
+        default: release
+  workflow_call:
+    inputs:
+      suite:
+        type: string
+        default: release
+
+permissions:
+  contents: write # publishes the report on the qa-reports branch
+
+concurrency:
+  group: regress-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  regress:
+    name: regress
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUITE: ${{ inputs.suite || ((github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'regress-release')) && 'smoke' || 'release') }}
+    steps:
+      - uses: actions/checkout@v4
+      # Same toolchain as ci.yml; bump both on purpose.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: regress
+      - name: Build the program and the suite
+        run: cargo test -p buildkiosk --test regress --no-run
+      - name: The previous release (for the upgrade check)
+        if: env.SUITE == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=$(gh release list --exclude-drafts --limit 20 --json tagName -q '.[].tagName' | grep -v -x -F "$GITHUB_REF_NAME" | head -n 1 || true)
+          if [ -z "$tag" ]; then
+            echo "no earlier release: the upgrade check is skipped (qa/known-skips.json)"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/previous"
+          gh release download "$tag" --pattern '*-x86_64-unknown-linux-musl.tar.gz' --dir "$RUNNER_TEMP/previous"
+          for f in "$RUNNER_TEMP"/previous/*.tar.gz; do tar -xzf "$f" -C "$RUNNER_TEMP/previous"; done
+          bin=$(find "$RUNNER_TEMP/previous" -type f -name buildkiosk | head -n 1)
+          if [ -n "$bin" ]; then
+            echo "BK_REGRESS_PREV_BIN=$bin" >> "$GITHUB_ENV"
+            echo "upgrade check from $tag"
+          fi
+      - name: The last report of this suite on main (for "new failures")
+        run: |
+          if git fetch -q --depth 1 origin qa-reports 2>/dev/null && git show "FETCH_HEAD:qa/regress-$SUITE.json" > "$RUNNER_TEMP/previous.json" 2>/dev/null; then
+            echo "BK_REGRESS_PREVIOUS=$RUNNER_TEMP/previous.json" >> "$GITHUB_ENV"
+          else
+            echo "no earlier $SUITE report on qa-reports"
+          fi
+      - name: Run the suite
+        env:
+          BK_REGRESS_OUT: ${{ runner.temp }}/regress
+        run: BK_REGRESS="$SUITE" cargo test -p buildkiosk --test regress
+      - name: Show the report in the job summary
+        if: always()
+        run: cat "$RUNNER_TEMP/regress/regress-latest.md" >> "$GITHUB_STEP_SUMMARY" || echo "no report was written"
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regress-${{ env.SUITE }}
+          path: ${{ runner.temp }}/regress/
+          retention-days: 30
+          if-no-files-found: warn
+      - name: Publish the report on the qa-reports branch
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/regress"
+          if [ ! -f "$src/regress-latest.md" ]; then echo "no report to publish"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          name="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          dest="qa"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] || [ "$name" != main ]; then
+            dest="qa/branches/$(printf '%s' "$name" | tr -c 'A-Za-z0-9._-' '-')"
+          fi
+          dir="$RUNNER_TEMP/qa-reports"
+          for attempt in 1 2 3; do
+            rm -rf "$dir"
+            git worktree prune
+            git branch -D qa-reports >/dev/null 2>&1 || true
+            if git fetch -q origin qa-reports; then
+              git worktree add -q -b qa-reports "$dir" FETCH_HEAD
+            else
+              git worktree add -q --orphan -b qa-reports "$dir"
+            fi
+            mkdir -p "$dir/$dest"
+            cp "$src/regress-latest.md" "$src/regress-latest.json" "$dir/$dest/"
+            cp "$src/regress-latest.md" "$dir/$dest/regress-$SUITE.md"
+            cp "$src/regress-latest.json" "$dir/$dest/regress-$SUITE.json"
+            git -C "$dir" add -A qa
+            if git -C "$dir" diff --cached --quiet; then echo "nothing new to publish"; exit 0; fi
+            git -C "$dir" commit -q -m "qa: regression report ($SUITE, $name, run $GITHUB_RUN_ID)"
+            if git -C "$dir" push -q origin HEAD:qa-reports; then echo "published to qa-reports:$dest (attempt $attempt)"; exit 0; fi
+            echo "another run published first; trying again"
+          done
+          exit 1
