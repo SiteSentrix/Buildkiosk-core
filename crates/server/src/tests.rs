@@ -1340,7 +1340,7 @@ async fn documents_upload_versions_and_download() {
     let (_, _, found) = send(&app, get("/projects/1/documents?q=plan")).await;
     assert!(found.contains("Plan set"));
     let (st, ..) = send(&app, get("/projects/1/documents/99")).await;
-    assert_eq!(st, StatusCode::OK, "pages answer not-found inside the page");
+    assert_eq!(st, StatusCode::NOT_FOUND, "a missing document shows the not-found page with 404 (issue #22)");
 
     // Several files at once, a zip of the folder, moving a folder, and the deleted-files page.
     let many = |token: &str| {
@@ -4957,5 +4957,51 @@ async fn each_host_gets_its_own_company_and_cookies_do_not_cross() {
     drop(pages);
     drop(tenants);
     drop(data);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn refused_and_missing_pages_answer_404_not_200() {
+    // Issue #22: the "not found" page used to come back with status 200.
+    let dir = temp("notfound");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    let (_, h, page) = send(&app, Request::get("/setup").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body =
+        format!("_csrf={}&name=Acme&first_name=Ada&last_name=Admin&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/setup", &anon, body)).await;
+    let ada = cookies(&h);
+    let (_, _, home) = send(&app, Request::get("/").header("cookie", &ada).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    send(&app, post("/do/project.create", &ada, format!("_csrf={csrf}&name=P"))).await;
+    send(
+        &app,
+        post("/do/person.create", &ada, format!("_csrf={csrf}&_next=/directory&first_name=Bo&last_name=Builder&email=bo%40example.com&is_user=true")),
+    )
+    .await;
+    send(&app, post("/people/2/password", &ada, format!("_csrf={csrf}&password=bo-secret-password"))).await;
+    let (_, h, page) = send(&app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let login = format!("_csrf={}&email=bo%40example.com&password=bo-secret-password", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/login", &anon, login)).await;
+    let bo = cookies(&h);
+    let get_as = |cookie: &str, path: &str| Request::get(path).header("cookie", cookie).body(Body::empty()).unwrap();
+
+    // Pages that exist and may be opened still answer 200.
+    for path in ["/", "/projects/1", "/settings"] {
+        let (st, _, body) = send(&app, get_as(&ada, path)).await;
+        assert_eq!(st, StatusCode::OK, "{path}");
+        assert!(!buildkiosk_web::pages::is_not_found(&body), "{path}");
+    }
+    // A record that doesn't exist, a project that doesn't exist, and a company page a non-admin may not open.
+    for (who, path) in [(&ada, "/projects/1/rfis/99999999"), (&ada, "/projects/99999999"), (&bo, "/settings"), (&bo, "/projects/1")] {
+        let (st, h, body) = send(&app, get_as(who, path)).await;
+        assert_eq!(st, StatusCode::NOT_FOUND, "{path}");
+        assert!(body.contains("That page doesn't exist, or you don't have access to it."), "{path}");
+        assert_eq!(h.get(CONTENT_TYPE).unwrap().to_str().unwrap(), "text/html; charset=utf-8", "{path}");
+    }
+    // An unknown address still answers 404 with the same page.
+    assert_eq!(send(&app, get_as(&ada, "/no/such/page")).await.0, StatusCode::NOT_FOUND);
+    drop(app);
     let _ = std::fs::remove_dir_all(&dir);
 }
