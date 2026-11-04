@@ -5189,3 +5189,77 @@ async fn signing_out_ends_the_session_on_the_server() {
     drop(app);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// -- sign-in through an authenticator (the `Authenticator` hook)
+
+/// Accepts `elsewhere@…` as the person in `accept`, refuses `refused@…`, and leaves everyone else to the local password.
+struct TestAuthenticator {
+    accept: std::sync::atomic::AtomicU64,
+    calls: std::sync::atomic::AtomicUsize,
+}
+
+impl buildkiosk_core::ext::Authenticator for TestAuthenticator {
+    fn authenticate(&self, attempt: &buildkiosk_core::ext::SignIn<'_>) -> AuthDecision {
+        use std::sync::atomic::Ordering;
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        assert_eq!(attempt.company, "auth-co");
+        match attempt.email.split('@').next() {
+            Some("elsewhere") => AuthDecision::Accept(self.accept.load(Ordering::SeqCst)),
+            Some("refused") => AuthDecision::Reject,
+            _ => AuthDecision::Local,
+        }
+    }
+}
+
+async fn try_sign_in(app: &Shared, email: &str, password: &str) -> (StatusCode, String) {
+    let (_, h, page) = send(app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body = format!("_csrf={}&email={}&password={password}", field(&page, "_csrf"), email.replace('@', "%40"));
+    let (st, h, _) = send(app, post("/login", &anon, body)).await;
+    (st, cookies(&h))
+}
+
+#[tokio::test]
+async fn sign_in_asks_the_authenticator_first() {
+    use std::sync::atomic::Ordering;
+    let dir = temp("authenticator");
+    let data = DataDir::open(&dir).unwrap();
+    make_company(&data, "auth-co", "Auth Co", "ada@example.com", "correct-horse-battery");
+    drop(data);
+    let auth = Arc::new(TestAuthenticator { accept: std::sync::atomic::AtomicU64::new(0), calls: std::sync::atomic::AtomicUsize::new(0) });
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), Some("auth-co")).unwrap().with_authenticator(auth.clone()));
+    let ada = {
+        let inner = app.lock();
+        let state = inner.tenant.as_ref().unwrap().engine.state();
+        state.people.iter().find(|p| p.email.as_deref() == Some("ada@example.com")).unwrap().id.raw()
+    };
+
+    // `Local`: the company's own password decides, as without an authenticator.
+    let (st, session) = try_sign_in(&app, "ada@example.com", "correct-horse-battery").await;
+    assert!(st == StatusCode::SEE_OTHER && session.starts_with("bk_session="), "{st}");
+    assert_eq!(try_sign_in(&app, "ada@example.com", "wrong-password").await.0, StatusCode::UNAUTHORIZED);
+
+    // `Accept(person)`: signed in as that person whatever the local password, and the session works.
+    auth.accept.store(ada, Ordering::SeqCst);
+    let (st, session) = try_sign_in(&app, "elsewhere@example.com", "not-a-local-password").await;
+    assert!(st == StatusCode::SEE_OTHER && session.starts_with("bk_session="), "{st}");
+    let (st, _, home) = send(&app, Request::get("/").header("cookie", &session).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(home.contains("_csrf"), "signed in as Ada");
+    // ... but only as an enabled user of this company.
+    auth.accept.store(9_999, Ordering::SeqCst);
+    assert_eq!(try_sign_in(&app, "elsewhere@example.com", "x").await.0, StatusCode::UNAUTHORIZED);
+
+    // `Reject`: refused even with the right local password.
+    assert_eq!(try_sign_in(&app, "refused@example.com", "correct-horse-battery").await.0, StatusCode::UNAUTHORIZED);
+
+    // The rate limit still comes first: once over it, the authenticator isn't asked.
+    for _ in 0..8 {
+        try_sign_in(&app, "refused@example.org", "x").await;
+    }
+    let before = auth.calls.load(Ordering::SeqCst);
+    assert_eq!(try_sign_in(&app, "refused@example.org", "x").await.0, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(auth.calls.load(Ordering::SeqCst), before);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}

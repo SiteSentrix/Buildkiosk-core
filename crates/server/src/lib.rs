@@ -36,6 +36,7 @@ use axum::extract::{DefaultBodyLimit, Multipart, Path, Query, State};
 use axum::http::header::{AUTHORIZATION, CONTENT_TYPE, COOKIE, LOCATION, SET_COOKIE};
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
+use buildkiosk_core::ext::{AuthDecision, Authenticator};
 use buildkiosk_core::{Id, Timestamp, text};
 use buildkiosk_engine::model::finance::{BudgetChange, ChangeEvent, CommitmentChange, PrimeChange, PrimeContract};
 use buildkiosk_engine::model::finance::{CommitmentInvoice, OwnerInvoice};
@@ -121,6 +122,8 @@ pub struct App {
     secure: bool,
     /// Backups taken on a schedule while the server runs.
     backups: Option<BackupPlan>,
+    /// Asked before the local password at sign-in (see [`App::with_authenticator`]); `None` is local passwords only.
+    authenticator: Option<Arc<dyn Authenticator>>,
 }
 
 /// Where, how often and how many scheduled backups are kept.
@@ -179,6 +182,7 @@ impl App {
             company_key: None,
             secure: false,
             backups: None,
+            authenticator: None,
         })
     }
 
@@ -258,6 +262,17 @@ impl App {
     /// cookies are sent with `Secure` and responses carry `Strict-Transport-Security`.
     pub fn with_secure_cookies(mut self, secure: bool) -> App {
         self.secure = secure;
+        self
+    }
+
+    /// Asks `authenticator` about every sign-in before the local password check (for example a host that keeps one
+    /// account per person across several companies). It answers `Local` (check this company's password, as without
+    /// one), `Accept(person)` (signed in as that person, who must be an enabled user of this company) or `Reject`.
+    /// The rate limit still runs first, and the local password check still runs every time, so every answer takes as
+    /// long as a password check. A session it started stays valid without a local password. Without it, sign-in is
+    /// local passwords only (`LocalOnly`).
+    pub fn with_authenticator(mut self, authenticator: Arc<dyn Authenticator>) -> App {
+        self.authenticator = Some(authenticator);
         self
     }
 
@@ -1049,12 +1064,10 @@ fn session(app: &App, inner: &Inner, headers: &HeaderMap) -> Option<Session> {
     let t = inner.tenant.as_ref()?;
     let id = Id::new(data.person);
     let p = t.engine.state().people.get(id)?;
-    (p.is_enabled()
-        && p.is_user
-        && inner.creds.epoch(data.person) == data.epoch
-        && inner.creds.has_password(data.person)
-        && !inner.creds.session_ended(&raw))
-    .then_some(Session { person: id, cookie: raw })
+    // With an authenticator, a person may sign in without a password of this company's own.
+    let has_password = inner.creds.has_password(data.person) || app.authenticator.is_some();
+    (p.is_enabled() && p.is_user && inner.creds.epoch(data.person) == data.epoch && has_password && !inner.creds.session_ended(&raw))
+        .then_some(Session { person: id, cookie: raw })
 }
 
 /// The anonymous CSRF cookie (made if absent) and the token for it.
@@ -3851,6 +3864,8 @@ struct SignIn {
     person: Option<u64>,
     email: String,
     company: String,
+    /// The company's slug, for the authenticator.
+    slug: String,
     csrf_cookie: String,
 }
 
@@ -3870,6 +3885,7 @@ fn sign_in_start(app: &App, headers: &HeaderMap, body: &Bytes) -> Result<SignIn,
     let password = get_form(&form, "password").to_string();
     let Some(t) = inner.tenant.as_ref() else { return Err(Box::new(redirect("/setup"))) };
     let company = t.engine.state().company().map(|c| c.name.clone()).unwrap_or_default();
+    let slug = t.slug.clone();
     let person = t
         .engine
         .state()
@@ -3880,17 +3896,27 @@ fn sign_in_start(app: &App, headers: &HeaderMap, body: &Bytes) -> Result<SignIn,
     let allowed = inner.limiter.allow(&email);
     // Always verify something, so a wrong email takes as long as a wrong password.
     let job = inner.creds.password_job(person.unwrap_or(0));
-    let started = SignIn { job, password, person, email, company, csrf_cookie };
+    let started = SignIn { job, password, person, email, company, slug, csrf_cookie };
     if !allowed {
         return Err(Box::new(sign_in_failure(app, &started, StatusCode::TOO_MANY_REQUESTS, "Too many attempts. Wait a few minutes and try again.")));
     }
     Ok(started)
 }
 
-fn sign_in_finish(app: &App, s: &SignIn, ok: bool) -> Response {
+/// `decision` is the authenticator's answer (`Local` without one) and `local_ok` whether the local password matched.
+fn sign_in_finish(app: &App, s: &SignIn, decision: AuthDecision, local_ok: bool) -> Response {
     let mut inner = app.lock();
-    match s.person {
-        Some(p) if ok => {
+    let person = match decision {
+        AuthDecision::Local => s.person.filter(|_| local_ok),
+        // Signed in elsewhere: only as someone who can sign in to this company.
+        AuthDecision::Accept(p) => {
+            let state = inner.tenant.as_ref().map(|t| t.engine.state());
+            Some(p).filter(|p| state.and_then(|st| st.people.get(Id::new(*p))).is_some_and(|x| x.is_enabled() && x.is_user))
+        }
+        AuthDecision::Reject => None,
+    };
+    match person {
+        Some(p) => {
             inner.limiter.clear(&s.email);
             let c = session_cookie(app, &inner, p);
             with_cookie(redirect("/"), &c)
@@ -3907,8 +3933,18 @@ async fn login_post(State(app): State<Shared>, headers: HeaderMap, body: Bytes) 
     // The hashing runs on its own thread with the lock released: otherwise a stream of sign-in attempts for made-up addresses
     // would hold up every other request.
     let (job, password) = (std::mem::replace(&mut started.job, buildkiosk_store::creds::PasswordJob::none()), started.password.clone());
-    let ok = tokio::task::spawn_blocking(move || job.check(&password)).await.unwrap_or(false);
-    sign_in_finish(&app, &started, ok)
+    let (authenticator, slug, email) = (app.authenticator.clone(), started.slug.clone(), started.email.clone());
+    let answer = tokio::task::spawn_blocking(move || {
+        // The authenticator first (it may look elsewhere); the local check runs whatever it says, so every answer takes
+        // as long as a password check.
+        let attempt = buildkiosk_core::ext::SignIn { company: &slug, email: &email, secret: &password };
+        let decision = authenticator.as_ref().map_or(AuthDecision::Local, |a| a.authenticate(&attempt));
+        (decision, job.check(&password))
+    })
+    .await;
+    // An authenticator that panicked refuses the sign-in.
+    let (decision, ok) = answer.unwrap_or((AuthDecision::Reject, false));
+    sign_in_finish(&app, &started, decision, ok)
 }
 
 async fn logout(State(app): State<Shared>, headers: HeaderMap, body: Bytes) -> Response {

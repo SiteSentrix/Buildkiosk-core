@@ -30,6 +30,7 @@ The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 2. The open parts of the tools already built, in the order of `docs/gaps.md`: inspections (4), drawings (5), schedule (6), financials (7), company reports (10), prequalification (11), languages (12).
 
 ## Progress log
+- 2026-11-04: Sign-in: the `Authenticator` hook is wired (`App::with_authenticator`): asked after the rate limit and before the local password; the default (none) keeps local passwords only (#33).
 - 2026-11-04: Engine: an optional `CommandGuard` is asked before every changing command from every entry point (refusal = `Forbidden`); server: `App::with_command_guard`, and `Tenants::remove` closes a company and stops its timed work without a restart (#34).
 - 2026-11-04: QA: the regression suite's report, known-skips rules, HTTP client, page reader and server launcher moved into the `buildkiosk-regress-kit` library crate so other suites can reuse them; the stories, report and rules are unchanged (#32).
 - 2026-11-04: Server: `route_patterns()` lists every route the web server serves (pattern and methods), kept by the same calls that register the routes; a test proves the list and the router match (#31).
