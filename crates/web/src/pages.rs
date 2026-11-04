@@ -123,13 +123,22 @@ pub(crate) fn project_for<'a>(req: &'a Req<'_>, id: Id<Project>) -> Option<&'a P
     (p.deleted.is_none() && view::level(req.engine.state(), req.actor(), id, Tool::ProjectHome) >= Level::Read).then_some(p)
 }
 
+/// Marks the "not found" page so the server answers it with 404, not 200 (issue #22). Text a person typed is
+/// escaped on every page, so it can never produce this attribute.
+pub const NOT_FOUND_MARK: &str = "data-page=\"not-found\"";
+
+/// True when `html` is the "not found" page (a missing record, or one this person may not open).
+pub fn is_not_found(html: &str) -> bool {
+    html.contains(NOT_FOUND_MARK)
+}
+
 pub fn not_found(req: &Req<'_>) -> Markup {
     layout::app(
         req,
         "Not found",
         Nav::Projects,
         &[],
-        html! { div class="card" { (empty(Icon::Search, "Not found", "That page doesn't exist, or you don't have access to it.")) } },
+        html! { div class="card" data-page="not-found" { (empty(Icon::Search, "Not found", "That page doesn't exist, or you don't have access to it.")) } },
     )
 }
 

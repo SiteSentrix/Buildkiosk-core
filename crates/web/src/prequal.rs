@@ -130,6 +130,14 @@ pub fn standing_pill(s: Standing) -> Markup {
     html! { span class=(format!("pill {class}")) { (text) } }
 }
 
+/// A company's standing pill, linking to its prequalification page only when it has a record there; with none,
+/// that page would say "not found" (issue #24), so the pill is shown without a link.
+pub fn standing_link(state: &buildkiosk_engine::model::CompanyState, vendor: Id<Vendor>, today: Date) -> Markup {
+    let pill = standing_pill(buildkiosk_engine::cmd::prequal::vendor_standing(state, vendor, today));
+    let has_record = visible(state).iter().any(|r| r.vendor == vendor);
+    html! { @if has_record { a href=(format!("/prequalification/{vendor}")) { (pill) } } @else { (pill) } }
+}
+
 /// The text of a questionnaire as the editor takes it: a `# Section` line, then `Question | points` lines.
 fn form_text(f: &PrequalForm) -> String {
     f.sections

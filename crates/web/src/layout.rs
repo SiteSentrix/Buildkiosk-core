@@ -50,7 +50,7 @@ impl Req<'_> {
 type NavEntry = (Tool, &'static str, &'static str, buildkiosk_engine::model::Level);
 
 const NAV_GROUPS: &[(&str, &[NavEntry])] = {
-    use buildkiosk_engine::model::Level::{Read, Standard};
+    use buildkiosk_engine::model::Level::Read;
     &[
         (
             "Project management",
@@ -100,7 +100,7 @@ const NAV_GROUPS: &[(&str, &[NavEntry])] = {
             ],
         ),
         ("Preconstruction", &[(Tool::Estimating, "estimating", "Estimating", Read), (Tool::Bidding, "bidding", "Bidding", Read)]),
-        ("Resources", &[(Tool::Timesheets, "timesheets", "Timesheets", Standard)]),
+        ("Resources", &[(Tool::Timesheets, "timesheets", "Timesheets", Read)]),
         ("Project", &[(Tool::Reports, "reports", "Report", Read), (Tool::ProjectDirectory, "team", "Team", Read)]),
     ]
 };

@@ -552,9 +552,13 @@ pub fn calendar(req: &Req<'_>, id: Id<Project>) -> Markup {
 pub fn lookahead(req: &Req<'_>, id: Id<Project>, weeks: i64, from: Option<Date>) -> Markup {
     let Some(p) = project_for(req, id) else { return not_found(req) };
     let state = req.engine.state();
-    if view::level(state, req.actor(), id, Tool::Schedule) < Level::Read {
+    let lvl = view::level(state, req.actor(), id, Tool::Schedule);
+    if lvl < Level::Read {
         return not_found(req);
     }
+    // The task page is the edit form, open to people who may edit the schedule (`detail`); read-only people see
+    // the name without a link (issue #23).
+    let can_edit = lvl >= Level::Standard;
     let today = req.today();
     let from = from.unwrap_or(today);
     let weeks = weeks.clamp(1, 12);
@@ -584,7 +588,7 @@ pub fn lookahead(req: &Req<'_>, id: Id<Project>, weeks: i64, from: Option<Date>)
                                 @for r in tasks {
                                     @let company = state.schedule_tasks.get(r.id).and_then(|t| t.company).and_then(|c| state.vendors.get(c)).map(|c| c.name.clone()).unwrap_or_default();
                                     tr {
-                                        td { a href=(format!("{base}/{}", r.id)) { (r.number) " " (r.name) } }
+                                        td { @if can_edit { a href=(format!("{base}/{}", r.id)) { (r.number) " " (r.name) } } @else { (r.number) " " (r.name) } }
                                         td { (short(r.start)) @if r.finish != r.start { " to " (short(r.finish)) } }
                                         td { (r.percent) "%" }
                                         td { (company) }
@@ -730,6 +734,40 @@ fn levelling(req: &Req<'_>, id: Id<Project>, base: &str, here: &str, weeks: i64,
                     }
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
+
+    use buildkiosk_testkit::World;
+    use serde_json::json;
+
+    use super::*;
+
+    fn render(w: &World, person: Id<buildkiosk_engine::model::directory::Person>, project: Id<Project>) -> String {
+        let req = Req { engine: &w.engine, person, csrf: "t", now: w.now(), flash: None };
+        lookahead(&req, project, 2, None).into_string()
+    }
+
+    #[test]
+    fn lookahead_links_tasks_only_for_people_who_can_open_them() {
+        // Issue #23: read-only people were shown links to the task page, which says "not found" for them.
+        let mut w = World::new();
+        let p = w.project("Riverside Clinic");
+        let sub = w.member(p, "Sam", "Sub", "Subcontractor");
+        let owner = w.member(p, "Olive", "Owner", "Owner / design team");
+        let out = w.ok(w.admin(), "schedule.add", json!({"project": p, "name": "Excavate", "start": "2026-10-12", "days": 3}));
+        let link = format!("href=\"/projects/{p}/schedule/{}\"", out["id"].as_u64().unwrap());
+
+        let admin = render(&w, w.admin, p);
+        assert!(admin.contains("Excavate") && admin.contains(&link), "{admin}");
+        for who in [sub, owner] {
+            let page = render(&w, who, p);
+            assert!(page.contains("Excavate"), "{page}");
+            assert!(!page.contains(&link), "{page}");
         }
     }
 }

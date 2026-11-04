@@ -550,7 +550,7 @@ pub fn commitments(req: &Req<'_>, id: Id<Project>, filter: &CommitmentFilter) ->
                                 td class="nowrap" { (c.number) }
                                 td { a class="row-link" href=(format!("{base}/{}", c.id)) { (c.title) } }
                                 td { @if let Some(v) = c.vendor { (view::vendor_name(state, v)) } }
-                                @if standing { td { @if let Some(v) = c.vendor { a href=(format!("/prequalification/{v}")) { (crate::prequal::standing_pill(buildkiosk_engine::cmd::prequal::vendor_standing(state, v, req.today()))) } } } }
+                                @if standing { td { @if let Some(v) = c.vendor { (crate::prequal::standing_link(state, v, req.today())) } } }
                                 td { (c.kind.label()) }
                                 td { (status_pill(c.status)) }
                                 td { @if c.signature.status != SignatureStatus::NotSent || p.require_signed_contracts { (signature_pill(c.signature.status)) } }
@@ -587,7 +587,7 @@ pub fn commitment(req: &Req<'_>, id: Id<Project>, cid: Id<Commitment>, history: 
         div class="page-head" {
             div {
                 h1 { (name) ": " (c.title) " " (status_pill(c.status)) }
-                div class="sub" { @if let Some(v) = c.vendor { (view::vendor_name(state, v)) " " @if buildkiosk_engine::model::perm::company_level(state, req.person, Tool::Prequalification) >= Level::Read { a href=(format!("/prequalification/{v}")) { (crate::prequal::standing_pill(buildkiosk_engine::cmd::prequal::vendor_standing(state, v, req.today()))) } " " } " · " } "Created " (req.when(c.created.at)) @if let Some(b) = c.created.by { " by " (view::person_name(state, b)) } }
+                div class="sub" { @if let Some(v) = c.vendor { (view::vendor_name(state, v)) " " @if buildkiosk_engine::model::perm::company_level(state, req.person, Tool::Prequalification) >= Level::Read { (crate::prequal::standing_link(state, v, req.today())) " " } " · " } "Created " (req.when(c.created.at)) @if let Some(b) = c.created.by { " by " (view::person_name(state, b)) } }
             }
             div class="actions" {
                 @if can_edit(state, req.actor(), c) { a class="btn" href=(format!("{here}/edit")) { "Edit" } }
@@ -1043,6 +1043,39 @@ pub(crate) fn signature_card(
                     }
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
+
+    use buildkiosk_testkit::World;
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn standing_links_to_prequalification_only_when_there_is_a_record() {
+        // Issue #24: the standing pill linked to /prequalification/{vendor} even with no record, which says "not found".
+        let mut w = World::new();
+        let p = w.project("Riverside Clinic");
+        let v = w.ok(w.admin(), "vendor.create", json!({"name": "Keystone Concrete", "kind": "subcontractor"}))["id"].as_u64().unwrap();
+        let c = w.ok(w.admin(), "commitment.create", json!({"project": p, "title": "Slab", "vendor": v}))["id"].as_u64().unwrap();
+        let link = format!("href=\"/prequalification/{v}\"");
+        let pages = |w: &World| {
+            let req = Req { engine: &w.engine, person: w.admin, csrf: "t", now: w.now(), flash: None };
+            [commitments(&req, p, &CommitmentFilter::default()).into_string(), commitment(&req, p, Id::new(c), &[]).into_string()]
+        };
+
+        for page in pages(&w) {
+            assert!(page.contains("Keystone Concrete") && page.contains("Not approved"), "{page}");
+            assert!(!page.contains(&link), "{page}");
+        }
+        w.ok(w.admin(), "prequal.save", json!({"vendor": v, "notes": "Good references"}));
+        for page in pages(&w) {
+            assert!(page.contains(&link), "{page}");
         }
     }
 }
