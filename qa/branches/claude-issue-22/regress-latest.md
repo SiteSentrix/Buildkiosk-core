@@ -1,6 +1,6 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-04T03:18:15Z · commit d6ae49d79c77 · release suite · 2 s
+Generated 2026-11-04T03:22:52Z · commit 3afc9d259fef · release suite · 1 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
@@ -35,36 +35,36 @@ No earlier report to compare with.
 
 | Check | Time |
 |---|---|
-| routes › admin: made-up and malformed ids never cause a server error | 0.2 s |
 | boot › the demo company is created from the command line | 0.1 s |
+| routes › admin: made-up and malformed ids never cause a server error | 0.1 s |
 | sign-in › repeated wrong passwords are slowed down | 0.1 s |
 | boot › the server starts on a free port and answers | 0.1 s |
 | data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
 | uploads › a file over 25 MB is refused without a server error | 0.1 s |
-| routes › admin: every page in the route table answers without a server error | 0.1 s |
-| routes › project manager: every page in the route table answers without a server error | 0.1 s |
+| routes › admin: every page in the route table answers without a server error | 0.0 s |
+| routes › project manager: every page in the route table answers without a server error | 0.0 s |
 
 ## Slowest requests (of 5133)
 
 | Request | Status | Time |
 |---|---|---|
-| POST /do/schedule.add (project manager) | 303 | 0.0 s |
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /do/incident.create (project manager) | 303 | 0.0 s |
 | POST /login (admin) | 303 | 0.0 s |
-| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (project manager) | 303 | 0.0 s |
-| POST /login (superintendent) | 303 | 0.0 s |
+| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (project engineer) | 303 | 0.0 s |
+| POST /login (anonymous) | 401 | 0.0 s |
+| POST /login (anonymous) | 401 | 0.0 s |
+| POST /login (anonymous) | 401 | 0.0 s |
 
 ## Every check
 
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-7595/data. |
+| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-2821/data. |
 | boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:45589 |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:45707 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
@@ -76,13 +76,13 @@ No earlier report to compare with.
 | sign-in | a wrong password is refused | @smoke | pass | 0.0 s | 401 |
 | safety | a sign-in without the form token is refused (CSRF) | @smoke | pass | 0.0 s | 403 |
 | projects | the demo projects are listed on the home page | @smoke | pass | 0.0 s | projects [2, 1] |
-| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×125, 303×5, 404×104 |
-| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×116, 303×7, 404×111 |
+| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×125, 303×5, 404×104 |
+| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×116, 303×7, 404×111 |
 | routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×100, 303×7, 404×127 |
 | routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×100, 303×7, 404×127 |
 | routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×68, 303×7, 404×159 |
 | routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×76, 303×7, 404×151 |
-| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.2 s | no server errors |
+| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.1 s | no server errors |
 | access | anonymous: every private page sends the visitor to sign in | @smoke | pass | 0.0 s | 221 private pages |
 | access | subcontractor: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
 | access | owner and design team: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
