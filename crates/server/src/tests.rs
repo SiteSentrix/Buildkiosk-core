@@ -1308,7 +1308,7 @@ async fn documents_upload_versions_and_download() {
     let (_, _, found) = send(&app, get("/projects/1/documents?q=plan")).await;
     assert!(found.contains("Plan set"));
     let (st, ..) = send(&app, get("/projects/1/documents/99")).await;
-    assert_eq!(st, StatusCode::OK, "pages answer not-found inside the page");
+    assert_eq!(st, StatusCode::NOT_FOUND, "a missing document shows the not-found page with 404 (issue #22)");
 
     // Several files at once, a zip of the folder, moving a folder, and the deleted-files page.
     let many = |token: &str| {
