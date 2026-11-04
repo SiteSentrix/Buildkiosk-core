@@ -1,4 +1,4 @@
-//! Credentials: password hashes, session epochs and API tokens.
+//! Credentials: password hashes, session epochs, ended sessions and API tokens.
 //!
 //! They live in `credentials.json` next to the journal, never in it: the journal is history that
 //! can be exported and replayed, and secrets don't belong there. Passwords are hashed with
@@ -13,6 +13,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{Result, StoreError, fsutil};
+
+/// The most ended sessions remembered at once (each is kept only until its cookie would have expired anyway);
+/// past it, [`Credentials::end_session`] refuses and the caller ends all of that person's sessions instead.
+pub const MAX_ENDED_SESSIONS: usize = 10_000;
 
 /// The shortest password accepted.
 pub const MIN_PASSWORD: usize = 10;
@@ -75,6 +79,10 @@ pub struct Credentials {
     pub people: BTreeMap<u64, PersonCred>,
     #[serde(default)]
     pub tokens: Vec<ApiToken>,
+    /// Sessions ended by signing out: SHA-256 of the session cookie → when that cookie would have expired
+    /// (milliseconds). A cookie listed here no longer signs anyone in (issue #21).
+    #[serde(default)]
+    pub ended_sessions: BTreeMap<String, i64>,
 }
 
 /// Why a password was refused.
@@ -185,6 +193,23 @@ impl Credentials {
         self.people.get(&person).map(|c| c.epoch).unwrap_or(0)
     }
 
+    /// Ends one session (the holder signed out), so its cookie stops working even if someone kept a copy.
+    /// Entries for cookies that have expired by `now_ms` are dropped first. False (nothing recorded) when
+    /// [`MAX_ENDED_SESSIONS`] are already remembered.
+    pub fn end_session(&mut self, cookie: &str, expires_ms: i64, now_ms: i64) -> bool {
+        self.ended_sessions.retain(|_, expires| *expires > now_ms);
+        if self.ended_sessions.len() >= MAX_ENDED_SESSIONS {
+            return false;
+        }
+        self.ended_sessions.insert(sha256_hex(cookie), expires_ms);
+        true
+    }
+
+    /// True when the session with this cookie was ended by signing out.
+    pub fn session_ended(&self, cookie: &str) -> bool {
+        self.ended_sessions.contains_key(&sha256_hex(cookie))
+    }
+
     /// Signs a person out of every session.
     pub fn bump_epoch(&mut self, person: u64) {
         if let Some(c) = self.people.get_mut(&person) {
@@ -244,6 +269,27 @@ mod tests {
     fn the_dummy_hash_is_a_real_hash() {
         // Otherwise a missing account would answer faster than a wrong password.
         assert!(PasswordHash::new("$argon2id$v=19$m=19456,t=2,p=1$c29tZXNhbHRzb21lc2FsdA$J8bHuKZSFtqhlXqKMZ71UjE0/3B4lV4jQm0lZoG6nS8").is_ok());
+    }
+
+    #[test]
+    fn ended_sessions_are_remembered_until_they_expire() {
+        let mut c = Credentials::default();
+        assert!(!c.session_ended("cookie-a"));
+        assert!(c.end_session("cookie-a", 5_000, 1_000));
+        assert!(c.session_ended("cookie-a") && !c.session_ended("cookie-b"));
+        // Once the cookie has expired it is dropped (it can't sign anyone in by then anyway).
+        assert!(c.end_session("cookie-b", 9_000, 6_000));
+        assert!(!c.session_ended("cookie-a") && c.session_ended("cookie-b"));
+        // The list is bounded.
+        for i in 0..MAX_ENDED_SESSIONS {
+            c.ended_sessions.insert(format!("x{i}"), 9_000);
+        }
+        assert_eq!(c.ended_sessions.len(), MAX_ENDED_SESSIONS);
+        assert!(!c.end_session("one-too-many", 9_000, 6_000));
+        assert!(!c.session_ended("one-too-many"));
+        // Older credential files (without the list) still load.
+        let old: Credentials = serde_json::from_str(r#"{"people": {}, "tokens": []}"#).unwrap();
+        assert!(old.ended_sessions.is_empty());
     }
 
     #[test]

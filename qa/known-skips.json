@@ -7,13 +7,6 @@
       "expires": "2026-11-17"
     },
     {
-      "check": "sign-in › signing out ends the session (the old cookie no longer works)",
-      "reason": "FAILS (real finding): the session cookie from before sign-out still opens every page until it expires; sign-out ends nothing on the server",
-      "expires": "2026-11-17",
-      "issue": 21,
-      "quarantine": true
-    },
-    {
       "check": "access › refused and missing pages answer 403, 404 or a redirect, not 200",
       "reason": "FAILS (real finding): the \"not found\" page is served with status 200 (/settings for the subcontractor, a made-up RFI id)",
       "expires": "2026-11-17",
