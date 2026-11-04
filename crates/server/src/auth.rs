@@ -25,6 +25,12 @@ pub(crate) fn sign(secret: &[u8], data: &str) -> String {
     mac(secret, data).map(|m| B64.encode(m.finalize().into_bytes())).unwrap_or_default()
 }
 
+/// A 32-byte key made from `secret` for one purpose (`label`), so keys for different purposes never match.
+pub(crate) fn derive_key(secret: &[u8], label: &str) -> Option<[u8; 32]> {
+    let bytes = mac(secret, label)?.finalize().into_bytes();
+    <[u8; 32]>::try_from(bytes.as_slice()).ok()
+}
+
 pub(crate) fn verify(secret: &[u8], data: &str, sig: &str) -> bool {
     let Ok(raw) = B64.decode(sig) else { return false };
     mac(secret, data).is_some_and(|m| m.verify_slice(&raw).is_ok())
@@ -122,6 +128,15 @@ mod tests {
         assert!(read_session(&[8u8; 32], &c, 2000).is_none(), "other secret");
         let forged = c.replacen('.', "x.", 1);
         assert!(read_session(&secret, &forged, 2000).is_none());
+    }
+
+    #[test]
+    fn derived_keys_differ_by_label() {
+        let secret = [3u8; 32];
+        let a = derive_key(&secret, "company:a").unwrap();
+        assert_eq!(a, derive_key(&secret, "company:a").unwrap());
+        assert_ne!(a, derive_key(&secret, "company:b").unwrap());
+        assert_ne!(a, secret);
     }
 
     #[test]
