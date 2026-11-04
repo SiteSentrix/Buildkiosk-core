@@ -311,6 +311,7 @@ dependencies = [
  "buildkiosk-core",
  "buildkiosk-engine",
  "buildkiosk-mcp",
+ "buildkiosk-regress-kit",
  "buildkiosk-server",
  "buildkiosk-store",
  "env_logger",
@@ -363,6 +364,13 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "buildkiosk-regress-kit"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]

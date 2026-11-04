@@ -186,3 +186,28 @@ fn saved_crews_log_hours_together() {
     w.err(pm, "timesheet.add", json!({"project": p, "date": "2026-10-13", "hours": 8, "crew": c}));
     w.assert_replay();
 }
+
+#[test]
+fn read_level_sees_own_hours_and_changes_nothing() {
+    // Issue #30: the Subcontractor template gives Timesheets Read; Read must show the person's own hours.
+    let mut w = World::new();
+    let p = w.project("Riverside Clinic");
+    let pm = w.member(p, "Paula", "Manager", "Project manager");
+    let sub = w.member(p, "Tim", "Trade", "Subcontractor");
+    let sup = w.member(p, "Sue", "Super", "Superintendent");
+    w.ok(pm, "timesheet.add", json!({"project": p, "date": "2026-10-12", "hours": "6", "person": sub.raw(), "description": "Rough-in"}));
+    w.ok(sup, "timesheet.add", json!({"project": p, "date": "2026-10-12", "hours": "8"}));
+
+    let mine = w.ok(sub, "timesheet.list", json!({"project": p}));
+    let mine = mine.as_array().unwrap();
+    assert_eq!(mine.len(), 1);
+    assert_eq!(mine[0]["description"], "Rough-in");
+    w.err(sub, "timesheet.list", json!({"project": p, "person": sup.raw()}));
+    w.err(sub, "timesheet.list", json!({"project": p, "deleted": true}));
+    w.err(sub, "timesheet.add", json!({"project": p, "date": "2026-10-13", "hours": "4"}));
+    let id = mine[0]["id"].as_u64().unwrap();
+    w.err(sub, "timesheet.update", json!({"project": p, "id": id, "hours": "1"}));
+    w.err(sub, "timesheet.delete", json!({"project": p, "id": id}));
+    w.err(sub, "timesheet.submit", json!({"project": p, "from": "2026-10-12"}));
+    w.assert_replay();
+}

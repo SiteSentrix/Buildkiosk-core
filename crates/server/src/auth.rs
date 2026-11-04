@@ -40,6 +40,8 @@ pub(crate) fn verify(secret: &[u8], data: &str, sig: &str) -> bool {
 pub struct SessionData {
     pub person: u64,
     pub epoch: u64,
+    /// When the cookie stops working (milliseconds since the epoch).
+    pub expires: i64,
 }
 
 /// The cookie value for a session issued at `now_ms`.
@@ -59,7 +61,7 @@ pub fn read_session(secret: &[u8], cookie: &str, now_ms: i64) -> Option<SessionD
     let person = parts.next()?.parse().ok()?;
     let epoch = parts.next()?.parse().ok()?;
     let expires: i64 = parts.next()?.parse().ok()?;
-    (expires > now_ms).then_some(SessionData { person, epoch })
+    (expires > now_ms).then_some(SessionData { person, epoch, expires })
 }
 
 /// The CSRF token for a form shown to the holder of `cookie` (the session cookie, or the anonymous

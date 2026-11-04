@@ -12,11 +12,25 @@
 //! another build of the program), `BK_REGRESS_PREV_BIN` (the previous release, for the upgrade check).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
 
-mod html;
-mod http;
-mod report;
-mod server;
 mod stories;
+
+// The report, the known-skips rules, the HTTP client, the page reader and the server launcher are shared with other
+// suites built on the core: they live in the `buildkiosk-regress-kit` crate.
+use buildkiosk_regress_kit::{html, http, report};
+
+mod server {
+    use std::path::PathBuf;
+
+    pub use buildkiosk_regress_kit::server::*;
+
+    /// The program under test: `BK_REGRESS_BIN` if set (for example a release build), else the one Cargo built.
+    pub fn bin() -> PathBuf {
+        match std::env::var_os("BK_REGRESS_BIN") {
+            Some(p) if !p.is_empty() => PathBuf::from(p),
+            _ => PathBuf::from(env!("CARGO_BIN_EXE_buildkiosk")),
+        }
+    }
+}
 
 use std::path::PathBuf;
 
