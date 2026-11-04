@@ -4927,3 +4927,100 @@ async fn each_host_gets_its_own_company_and_cookies_do_not_cross() {
     drop(data);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// -- a host's command guard (`App::with_command_guard`) and closing a company (`Tenants::remove`)
+
+/// Refuses every new project, as a host's plan limit would.
+struct NoNewProjects;
+
+impl buildkiosk_engine::CommandGuard for NoNewProjects {
+    fn check(&self, _company: &str, _state: &CompanyState, _actor: Actor, command: &str, _params: &Value) -> Result<(), String> {
+        if command == "project.create" { Err("Your plan allows no more projects.".into()) } else { Ok(()) }
+    }
+}
+
+#[tokio::test]
+async fn a_command_guard_refuses_from_every_entry_point() {
+    let dir = temp("command-guard");
+    let data = DataDir::open(&dir).unwrap();
+    make_company(&data, "guarded", "Guarded Co", "ada@example.com", "correct-horse-battery");
+    drop(data);
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), Some("guarded")).unwrap().with_command_guard(Arc::new(NoNewProjects)));
+    let projects = |app: &Shared| app.lock().tenant.as_ref().unwrap().engine.state().projects.len();
+
+    // A page form: the refusal comes back as the error message.
+    let (_, h, page) = send(&app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let login = format!("_csrf={}&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/login", &cookies(&h), login)).await;
+    let session = cookies(&h);
+    let (_, _, home) = send(&app, Request::get("/").header("cookie", &session).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    let (st, h, _) = send(&app, post("/do/project.create", &session, format!("_csrf={csrf}&_next=/&name=Tower+One"))).await;
+    let to = h.get(LOCATION).unwrap().to_str().unwrap();
+    assert!(st == StatusCode::SEE_OTHER && to.contains("error=") && to.contains("plan"), "{st} {to}");
+    assert_eq!(projects(&app), 0);
+
+    // The HTTP API: 403 with the guard's message.
+    let token = {
+        let mut inner = app.lock();
+        let person = inner.tenant.as_ref().unwrap().engine.state().people.iter().find(|p| p.is_user).unwrap().id.raw();
+        let t = inner.creds.create_token(person, "agent", Timestamp::from_millis(now_ms())).unwrap();
+        inner.tenant.as_ref().unwrap().store.save_credentials(&inner.creds).unwrap();
+        t
+    };
+    let api = Request::post("/api/v1/commands/project.create")
+        .header("authorization", format!("Bearer {token}"))
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"name": "Tower Two"}"#))
+        .unwrap();
+    let (st, _, body) = send(&app, api).await;
+    assert!(st == StatusCode::FORBIDDEN && body.contains("forbidden") && body.contains("Your plan allows no more projects."), "{st} {body}");
+    // Queries still answer.
+    let list = Request::post("/api/v1/commands/project.list").header("authorization", format!("Bearer {token}")).body(Body::empty()).unwrap();
+    assert_eq!(send(&app, list).await.0, StatusCode::OK);
+
+    // MCP: an error result.
+    let call = r#"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"project_create","arguments":{"name":"Tower Three"}}}"#;
+    let rpc =
+        Request::post("/mcp").header("content-type", "application/json").header("authorization", format!("Bearer {token}")).body(Body::from(call));
+    let (_, _, body) = send(&app, rpc.unwrap()).await;
+    assert!(body.contains("\"isError\":true") && body.contains("Your plan allows no more projects."), "{body}");
+    assert_eq!(projects(&app), 0);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_closed_company_stops_its_jobs_and_opens_again() {
+    let dir = temp("tenants-remove");
+    let data = Arc::new(DataDir::open(&dir).unwrap());
+    make_company(&data, "north", "North Builders", "ada@north.example.com", "north-password-1");
+    let shared = data.clone();
+    let open: Opener = Box::new(move |slug: &str| {
+        if !shared.companies().map_err(|e| e.to_string())?.iter().any(|s| s == slug) {
+            return Ok(None);
+        }
+        App::open_shared(shared.clone(), Some(slug))?.with_company_secret().map(Some)
+    });
+    let tenants = Arc::new(Tenants::new(Box::new(FirstLabel), Some(open)));
+    tenants.start_jobs();
+    let pages = tenants.clone().into_router();
+    let north = Some("north.example.test");
+
+    assert!(tenants.remove("north").is_none(), "not open yet");
+    assert_eq!(send_via(&pages, north, Request::get("/login").body(Body::empty()).unwrap()).await.0, StatusCode::OK);
+    let first = tenants.get("north").unwrap();
+    assert!(!first.jobs.lock().unwrap().is_empty(), "its timed work runs");
+
+    let closed = tenants.remove("north").unwrap();
+    assert!(Arc::ptr_eq(&first, &closed));
+    assert!(closed.jobs.lock().unwrap().is_empty(), "its timed work stopped");
+    assert!(tenants.get("north").is_none());
+
+    // The next request opens it again, fresh from disk.
+    assert_eq!(send_via(&pages, north, Request::get("/login").body(Body::empty()).unwrap()).await.0, StatusCode::OK);
+    let again = tenants.get("north").unwrap();
+    assert!(!Arc::ptr_eq(&first, &again));
+    drop((first, closed, again, pages, tenants));
+    let _ = std::fs::remove_dir_all(&dir);
+}

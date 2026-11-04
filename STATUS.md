@@ -3,6 +3,7 @@
 _Updated every session; under 40 lines. Longer history is in the ROADMAP progress log._
 
 ## Last task
+- 2026-11-04: #34 `CommandGuard` in the engine (`App::with_command_guard`) and `Tenants::remove`.
 - 2026-11-04: `TenantResolver` wired: every request resolves its company and goes to that company's own `App`
   (`crates/server/src/tenants.rs`); the default (`SingleCompany`) keeps single-company servers unchanged. Tests for
   both. PR "Wire the tenant resolver" (needs-review).

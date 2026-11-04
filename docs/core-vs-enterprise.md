@@ -53,6 +53,13 @@ Each trait has a default that behaves exactly like the core today, so single-com
 | `BackgroundJob` | none in core | running timed work (mail queue, reminders, recurring forms, backups) for each company | No: the server runs these passes for its one company |
 | `FeatureFlags` | `NoFlags` (nothing optional is on) | showing or hiding features a build adds | No |
 
+Other public hooks:
+- `buildkiosk_engine::CommandGuard` (`Engine::set_command_guard`, `App::with_command_guard`): asked before every
+  command that can change something, whatever the entry point (pages, HTTP API, MCP, the pages that run commands
+  themselves), for plan limits or a read-only mode. A refusal is a normal `Forbidden` command error. Default: none.
+- `Tenants::remove(slug)`: closes an open company without a restart (its timed work stops; the next request opens it
+  again).
+
 Still to add when the add-ons need them: a way to register extra commands (the command registry in
 `crates/engine/src/cmd/mod.rs` and the tool list in `crates/model/src/tool.rs` are fixed today), and a way to add
 pages and menu items to the web UI.
