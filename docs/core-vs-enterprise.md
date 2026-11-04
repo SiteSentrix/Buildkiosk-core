@@ -54,6 +54,8 @@ Each trait has a default that behaves exactly like the core today, so single-com
 | `FeatureFlags` | `NoFlags` (nothing optional is on) | showing or hiding features a build adds | No |
 
 Other public hooks:
+- `buildkiosk-regress-kit` (`crates/regress-kit`): the regression suite's report, known-skips rules, HTTP client, page
+  reader and server launcher, for suites outside the core (`docs/qa.md`).
 - `buildkiosk_server::route_patterns()`: every route the web server serves (pattern such as
   `/projects/{id}/rfis/{rid}` and its methods), built by the same calls that build the router, so tests outside the
   core can visit every page without reading its source.

@@ -1,4 +1,4 @@
-//! Starts the real `buildkiosk` program: the command line (`demo`, `token`, `check`) and `serve` on a free local
+//! Starts the program under test (a `buildkiosk` binary, or a build that wraps the core): the command line (`demo`, `token`, `check`) and `serve` on a free local
 //! port with a throwaway data folder, its output kept in a log file.
 
 use std::fs::File;
@@ -6,14 +6,6 @@ use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
-
-/// The program under test: `BK_REGRESS_BIN` if set (for example a release build), else the one Cargo built.
-pub fn bin() -> PathBuf {
-    match std::env::var_os("BK_REGRESS_BIN") {
-        Some(p) if !p.is_empty() => PathBuf::from(p),
-        _ => PathBuf::from(env!("CARGO_BIN_EXE_buildkiosk")),
-    }
-}
 
 /// Runs a command-line subcommand; its standard output, or everything it printed when it fails.
 pub fn cli(bin: &Path, args: &[&str]) -> Result<String, String> {
