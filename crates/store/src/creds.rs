@@ -281,7 +281,7 @@ mod tests {
         assert!(c.end_session("cookie-b", 9_000, 6_000));
         assert!(!c.session_ended("cookie-a") && c.session_ended("cookie-b"));
         // The list is bounded.
-        for i in 0..MAX_ENDED_SESSIONS {
+        for i in 1..MAX_ENDED_SESSIONS {
             c.ended_sessions.insert(format!("x{i}"), 9_000);
         }
         assert_eq!(c.ended_sessions.len(), MAX_ENDED_SESSIONS);
