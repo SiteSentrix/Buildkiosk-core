@@ -14,17 +14,17 @@
       "quarantine": true
     },
     {
-      "check": "access › refused and missing pages answer 403, 404 or a redirect, not 200",
-      "reason": "FAILS (real finding): the \"not found\" page is served with status 200 (/settings for the subcontractor, a made-up RFI id)",
-      "expires": "2026-11-17",
-      "issue": 22,
-      "quarantine": true
-    },
-    {
       "check": "crawl › admin: every link shown opens (no 4xx, no \"not found\" page)",
       "reason": "FAILS (real finding): the commitments list links to /prequalification/{vendor} for vendors without a prequalification",
       "expires": "2026-11-17",
       "issue": 24,
+      "quarantine": true
+    },
+    {
+      "check": "access › subcontractor: the tools its permission template allows open, the others are refused",
+      "reason": "FAILS (real finding): the template gives Timesheets Read, but the timesheets page needs Standard and says not found",
+      "expires": "2026-11-17",
+      "issue": 30,
       "quarantine": true
     }
   ]

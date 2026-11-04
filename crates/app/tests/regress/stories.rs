@@ -90,10 +90,15 @@ pub fn all(run: &mut Run, root: &Path) -> Vec<Seen> {
         sign_in_stories(run, &mut ctx);
         route_stories(run, &mut ctx);
         loop_stories(run, &mut ctx);
+        role_page_stories(run, &mut ctx);
         if run.wants(Tag::Release) {
             tool_stories(run, &mut ctx);
+            // After the tools: a prime change order needs the prime contract made there.
+            workflow_stories(run, &mut ctx);
             exchange_stories(run, &mut ctx);
+            import_stories(run, &mut ctx);
             upload_stories(run, &mut ctx);
+            upload_route_stories(run, &mut ctx);
             api_stories(run, &mut ctx);
             session_stories(run, &mut ctx);
         }
@@ -1179,4 +1184,394 @@ fn upgrade_story(run: &mut Run, ctx: &Ctx) {
             Err(format!("home {} project listed {project} running {running}", home.status))
         }
     });
+}
+
+// -- workflows: comments and approvals
+
+fn workflow_stories(run: &mut Run, ctx: &mut Ctx) {
+    let p = ctx.projects.first().copied().unwrap_or(1);
+    let data = ctx.data.clone();
+    for (tool, prefix) in [("punch-list", "punch"), ("observations", "observation")] {
+        let Ok(c) = user(&mut ctx.users, "project manager") else { return };
+        let base = format!("/projects/{p}/{tool}");
+        run.check("loops", &format!("{tool}: comment on an item (journal checked)"), Tag::Release, || {
+            let set = [("title", "QA regression: comment thread"), ("assignees[]", html::FIRST)];
+            let loc = step(c, &data, &format!("{base}/new"), &format!("/do/{prefix}.create"), &set, None, &format!("{prefix}.create"))?;
+            let id = id_after(&loc, &format!("/{tool}/")).ok_or_else(|| format!("no id in {loc}"))?;
+            let here = format!("{base}/{id}");
+            let comment = [("body", "QA regression: checked on site, needs a second coat.")];
+            step(c, &data, &here, &format!("/do/{prefix}.comment"), &comment, None, &format!("{prefix}.comment"))?;
+            let page = c.get(&here).text();
+            if !page.contains("needs a second coat") {
+                return Err("the comment is not shown on the item".to_string());
+            }
+            Ok(format!("{prefix} {id}: create → comment, shown on the page"))
+        });
+    }
+    let base = format!("/projects/{p}/submittals");
+    let users = &mut ctx.users;
+    run.check("loops", "submittal: create, send for review, reviewer approves, close (journal checked)", Tag::Release, || {
+        let pm = user(users, "project manager")?;
+        let label = format!("{}Hana", html::LABEL);
+        let set = [("title", "QA regression: door hardware product data"), ("reviewers[]", label.as_str()), ("open", "true")];
+        let loc = step(pm, &data, &format!("{base}/new"), "/do/submittal.create", &set, None, "submittal.create")?;
+        let id = id_after(&loc, "/submittals/").ok_or_else(|| format!("no submittal id in {loc}"))?;
+        let here = format!("{base}/{id}");
+        let reviewer = user(users, "owner and design team")?;
+        let review = [("decision", "approved"), ("comment", "QA regression: approved.")];
+        step(reviewer, &data, &here, &format!("{here}/review"), &review, None, "submittal.review")?;
+        let pm = user(users, "project manager")?;
+        let (forms, text) = page_forms(pm, &here)?;
+        if html::post_form(&forms, "/do/submittal.close").is_some() {
+            step(pm, &data, &here, "/do/submittal.close", &[("final", "approved")], None, "submittal.close")?;
+            return Ok(format!("submittal {id}: create+open → review (approved) → close"));
+        }
+        if text.contains("Approved") {
+            Ok(format!("submittal {id}: create+open → review (approved), closed by the review"))
+        } else {
+            Err("approved, but the page does not say so".to_string())
+        }
+    });
+    let Ok(admin) = user(&mut ctx.users, "admin") else { return };
+    // A prime change order needs an approved prime contract, so that goes first (its own create → approve).
+    let docs = [
+        ("change-orders", "commitment_change", "commitment change order"),
+        ("prime-contracts", "prime_contract", "prime contract"),
+        ("prime-change-orders", "prime_change", "prime change order"),
+    ];
+    for (tool, prefix, noun) in docs {
+        let base = format!("/projects/{p}/{tool}");
+        run.check("loops", &format!("{noun}: create with a line, approve (journal checked)"), Tag::Release, || {
+            let id = create_and_approve(admin, &data, &base, tool, prefix)?;
+            Ok(format!("{tool} {id}: create → {prefix}.approve"))
+        });
+    }
+}
+
+/// Creates a cost document with one line from its "new" page and approves it; its id.
+fn create_and_approve(c: &mut Client, data: &Path, base: &str, tool: &str, prefix: &str) -> Result<u64, String> {
+    let n = journal_len(data);
+    let set = [
+        ("title", "QA regression: added blocking at door 12"),
+        ("commitment", html::FIRST),
+        ("contract", html::FIRST),
+        ("lines.0.cost_code", html::FIRST),
+        ("lines.0.description", "Blocking at door 12"),
+        ("lines.0.amount", "1250.00"),
+    ];
+    let loc = submit(c, &format!("{base}/new"), "", &set, None)?;
+    journaled(data, n, &format!("{prefix}.")).map_err(|e| format!("{e}, after the form went to {loc}"))?;
+    let id = id_after(&loc, &format!("/{tool}/")).ok_or_else(|| format!("created, but no id in {loc}"))?;
+    let approve = format!("{prefix}.approve");
+    press_step(c, data, &format!("{base}/{id}"), &[approve.as_str()])?;
+    Ok(id)
+}
+
+// -- imports: CSV files and the schedule exchange (.xer) file
+
+/// The cells of one CSV line (quotes and doubled quotes understood).
+fn csv_cells(line: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cell = String::new();
+    let mut quoted = false;
+    let mut chars = line.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' if quoted && chars.peek() == Some(&'"') => {
+                cell.push('"');
+                chars.next();
+            }
+            '"' => quoted = !quoted,
+            ',' if !quoted => out.push(std::mem::take(&mut cell)),
+            _ => cell.push(ch),
+        }
+    }
+    out.push(cell);
+    out
+}
+
+/// What each CSV import gets: the tool, its import command, the file, and a title to find in the export afterwards.
+const CSV_IMPORTS: [(&str, &str, &str, &str); 3] = [
+    (
+        "punch-list",
+        "punch.import",
+        "title,location,kind,priority,due,assignees\nQA import: caulk window 3,Level 3,Paint,low,2026-12-01,\nQA import: reset ceiling grid,Room 310,Ceilings,medium,2026-12-02,\n",
+        "QA import: reset ceiling grid",
+    ),
+    (
+        "observations",
+        "observation.import",
+        "title,location,kind,priority,due,assignees\nQA import: extension cord across the walkway,Level 2,Safety,high,2026-12-01,\n",
+        "QA import: extension cord across the walkway",
+    ),
+    (
+        "submittals",
+        "submittal.import",
+        "title,spec_section,kind,due\nQA import: sealant product data,07 92 00,Product data,2026-12-01\n",
+        "QA import: sealant product data",
+    ),
+];
+
+fn import_stories(run: &mut Run, ctx: &mut Ctx) {
+    let (p, q) = (ctx.projects.first().copied().unwrap_or(1), ctx.projects.get(1).copied().unwrap_or(2));
+    let data = ctx.data.clone();
+    let Ok(c) = user(&mut ctx.users, "admin") else { return };
+    for (tool, cmd, csv, title) in CSV_IMPORTS {
+        let base = format!("/projects/{p}/{tool}");
+        run.check("imports", &format!("{tool}: import a CSV file, then find the lines in the CSV export"), Tag::Release, || {
+            let file = FilePart::new("file", &format!("{tool}.csv"), "text/csv", csv.as_bytes().to_vec());
+            step(c, &data, &base, &format!("{base}/import"), &[], Some(file), cmd)?;
+            let export = c.get(&format!("{base}.csv")).text();
+            if export.contains(title) {
+                Ok(format!("{cmd}, then in {tool}.csv"))
+            } else {
+                Err(format!("imported, but `{title}` is not in {tool}.csv"))
+            }
+        });
+    }
+    run.check("imports", "schedule exchange (.xer) file: tasks from one project's export imported into the other", Tag::Release, || {
+        let csv = c.get(&format!("/projects/{p}/schedule.csv"));
+        if csv.status != 200 {
+            return Err(format!("schedule.csv answered {}", csv.status));
+        }
+        let text = csv.text();
+        let mut rows = String::new();
+        let mut names = Vec::new();
+        for (n, line) in text.lines().skip(1).filter(|l| !l.trim().is_empty()).enumerate() {
+            let cells = csv_cells(line);
+            let (Some(name), Some(start), Some(finish)) = (cells.get(1), cells.get(2), cells.get(3)) else { continue };
+            let day = |d: &str| if crate::report::parse_day(d).is_some() { d.trim().to_string() } else { "2026-12-01".to_string() };
+            let name = format!("{name} (xer)");
+            rows.push_str(&format!("%R\t{}\t1\t{name}\tTT_Task\t{} 08:00\t{} 17:00\n", n + 1, day(start), day(finish)));
+            names.push(name);
+        }
+        if names.is_empty() {
+            return Err("the schedule export has no tasks".to_string());
+        }
+        let header = "ERMHDR\t19.12\n%T\tPROJECT\n%F\tproj_id\tproj_short_name\n%R\t1\tQA-XER\n%T\tTASK\n";
+        let fields = "%F\ttask_id\tproj_id\ttask_name\ttask_type\ttarget_start_date\ttarget_end_date\n";
+        let xer = format!("{header}{fields}{rows}%E\n");
+        let base = format!("/projects/{q}/schedule");
+        let file = FilePart::new("file", "plan.xer", "text/plain", xer.into_bytes());
+        step(c, &data, &base, &format!("{base}/import-xer"), &[], Some(file), "schedule.import_xer")?;
+        let after = c.get(&format!("{base}.csv")).text();
+        let missing: Vec<&String> = names.iter().filter(|n| !after.contains(n.as_str())).collect();
+        if missing.is_empty() {
+            Ok(format!("{} tasks round-tripped", names.len()))
+        } else {
+            Err(format!("not in the other project's schedule: {missing:?}"))
+        }
+    });
+}
+
+// -- every upload route: size limit and type safety
+
+/// An upload route with its ids filled from real records (the newest on the list page), or why it can't be.
+fn upload_target(c: &mut Client, template: &str, project: u64) -> Result<String, String> {
+    let path = template.replacen("{id}", &project.to_string(), 1);
+    let Some(i) = path.find("/{") else { return Ok(path) };
+    let list = path[..i].to_string();
+    let rest = &path[i..];
+    let close = rest.find('}').ok_or("odd route")?;
+    let tail = &rest[close + 1..];
+    if tail.contains('{') {
+        return Err("more than one record id".to_string());
+    }
+    let page = c.get(&list).text();
+    let id = newest_id(&page, &format!("{list}/")).ok_or_else(|| format!("no record listed on {list}"))?;
+    Ok(format!("{list}/{id}{tail}"))
+}
+
+fn is_upload_route(path: &str) -> bool {
+    let ends =
+        ["/upload", "/upload-many", "/upload-set", "/import", "/import-xml", "/import-xer", "/import-file", "/review", "/respond", "/line-file"];
+    // Token links for outside people (bidders, prequalification) are not signed-in uploads.
+    !path.starts_with("/bid/") && !path.starts_with("/prequal/") && ends.iter().any(|e| path.ends_with(e))
+}
+
+/// The size to try on an upload route: just over its limit.
+fn over_limit(route: &str) -> usize {
+    if route.ends_with("/import-xml") || route.ends_with("/import-xer") {
+        9 * 1024 * 1024
+    } else if route.ends_with("/import") || route.ends_with("/import-file") {
+        2 * 1024 * 1024
+    } else {
+        26 * 1024 * 1024
+    }
+}
+
+fn upload_route_stories(run: &mut Run, ctx: &mut Ctx) {
+    let p = ctx.projects.first().copied().unwrap_or(1);
+    let data = ctx.data.clone();
+    let routes: Vec<String> = ctx.routes.iter().filter(|r| r.post && is_upload_route(&r.path)).map(|r| r.path.clone()).collect();
+    let Ok(c) = user(&mut ctx.users, "admin") else { return };
+    // Records for the two upload routes nothing else in the run makes: a started form and a prequalification.
+    run.check("tools", "forms: make a template and start a form from it", Tag::Release, || {
+        let set = [("name", "QA regression: area clean-up checklist"), ("fields.0.label", "Is the area swept?")];
+        step(c, &data, &format!("/projects/{p}/forms/templates"), "/do/form_template.create", &set, None, "form_template.create")?;
+        let loc = step(c, &data, &format!("/projects/{p}/forms"), "/do/form.create", &[("template", html::FIRST)], None, "form.create")?;
+        Ok(format!("form_template.create → form.create ({loc})"))
+    });
+    run.check("tools", "prequalification: add a record for a company", Tag::Release, || {
+        step(c, &data, "/prequalification", "/do/prequal.save", &[("vendor", html::FIRST), ("notes", "QA regression record")], None, "prequal.save")
+    });
+    // The form token belongs to the session, so one from any page serves every form.
+    let csrf = page_forms(c, "/")
+        .ok()
+        .and_then(|(forms, _)| forms.iter().flat_map(|f| f.fields.iter()).find(|f| f.name == "_csrf").map(|f| f.value.clone()));
+    let mut targets: Vec<(String, String)> = Vec::new();
+    let mut unreachable: Vec<String> = Vec::new();
+    for t in &routes {
+        match upload_target(c, t, p) {
+            Ok(path) => targets.push((t.clone(), path)),
+            Err(e) => unreachable.push(format!("{t} ({e})")),
+        }
+    }
+    let note = if unreachable.is_empty() { String::new() } else { format!("; no record to try: {}", unreachable.join(", ")) };
+    run.check("uploads", "every upload route refuses a file over its size limit without a server error or a change", Tag::Release, || {
+        let csrf = csrf.clone().ok_or("no form token on the home page")?;
+        let mut bad = Vec::new();
+        for (t, path) in &targets {
+            let size = over_limit(t);
+            let n = journal_len(&data);
+            let big = FilePart::new("file", "qa-big.csv", "text/csv", vec![b'x'; size]);
+            let res = c.post_multipart(path, &[("_csrf".to_string(), csrf.clone())], &[big]);
+            let ok_flash = res.is_redirect() && http::query_value(res.location(), "ok").is_some();
+            if res.status >= 500 || (200..300).contains(&res.status) || ok_flash || journal_len(&data) != n {
+                bad.push(format!("{path} ({} MB) → {} {}", size / (1024 * 1024), res.status, res.location()));
+            }
+        }
+        if bad.is_empty() { Ok(format!("{} upload routes refused an over-size file{note}", targets.len())) } else { Err(bad.join("; ")) }
+    });
+    run.check("uploads", "every upload route either refuses a web page or serves it back only as a download", Tag::Release, || {
+        let csrf = csrf.clone().ok_or("no form token on the home page")?;
+        let page = b"<html><body><script>alert(1)</script>QA regression</body></html>".to_vec();
+        let mut bad = Vec::new();
+        let mut accepted = 0;
+        for (_, path) in &targets {
+            let fields = [
+                ("_csrf".to_string(), csrf.clone()),
+                ("body".to_string(), "QA regression upload".to_string()),
+                ("decision".to_string(), "approved".to_string()),
+            ];
+            let res = c.post_multipart(path, &fields, &[FilePart::new("file", "qa-page.html", "text/html", page.clone())]);
+            if res.status >= 500 || res.status == 0 {
+                bad.push(format!("{path} → {}", res.status));
+                continue;
+            }
+            if !(res.is_redirect() && http::query_value(res.location(), "ok").is_some()) {
+                continue;
+            }
+            accepted += 1;
+            let back = res.location().split('?').next().unwrap_or("/").to_string();
+            let shown = c.get(&back).text();
+            for link in html::links(&shown).iter().filter(|l| l.contains("/files/")) {
+                let file = c.get(link);
+                let attachment = file.header("content-disposition").is_some_and(|d| d.starts_with("attachment"));
+                let nosniff = file.header("x-content-type-options") == Some("nosniff");
+                if file.status == 200 && !(attachment && nosniff) {
+                    bad.push(format!("{link} (after {path}) is not served as a download"));
+                }
+            }
+        }
+        if bad.is_empty() {
+            Ok(format!("{} routes; {accepted} took the file and serve files only as downloads{note}", targets.len()))
+        } else {
+            Err(bad.join("; "))
+        }
+    });
+}
+
+// -- each role's allowed pages, from its permission template
+
+/// Project tools (permission keys) and their list page.
+const TOOL_PAGES: [(&str, &str); 29] = [
+    ("documents", "documents"),
+    ("drawings", "drawings"),
+    ("specifications", "specifications"),
+    ("photos", "photos"),
+    ("schedule", "schedule"),
+    ("tasks", "tasks"),
+    ("reports", "reports"),
+    ("rfis", "rfis"),
+    ("submittals", "submittals"),
+    ("transmittals", "transmittals"),
+    ("meetings", "meetings"),
+    ("daily_log", "daily-logs"),
+    ("correspondence", "correspondence"),
+    ("forms", "forms"),
+    ("punch_list", "punch-list"),
+    ("inspections", "inspections"),
+    ("observations", "observations"),
+    ("incidents", "incidents"),
+    ("action_plans", "action-plans"),
+    ("budget", "budget"),
+    ("change_events", "change-events"),
+    ("change_orders", "change-orders"),
+    ("commitments", "commitments"),
+    ("prime_contracts", "prime-contracts"),
+    ("invoicing", "owner-invoices"),
+    ("direct_costs", "direct-costs"),
+    ("bidding", "bidding"),
+    ("estimating", "estimating"),
+    ("timesheets", "timesheets"),
+];
+
+/// The demo roles' permission templates (`buildkiosk demo`).
+const ROLE_TEMPLATES: [(&str, &str); 5] = [
+    ("project manager", "Project manager"),
+    ("superintendent", "Superintendent"),
+    ("project engineer", "Project engineer"),
+    ("subcontractor", "Subcontractor"),
+    ("owner and design team", "Owner / design team"),
+];
+
+fn role_page_stories(run: &mut Run, ctx: &mut Ctx) {
+    let p = ctx.projects.first().copied().unwrap_or(1);
+    let mut api = ctx.client("api (templates)");
+    api.bearer = ctx.tokens.get("admin").cloned();
+    let res = api.post_json("/api/v1/commands/template.list", "{}");
+    let status = res.status;
+    let templates: Value = serde_json::from_slice(&res.body).unwrap_or(Value::Null);
+    let list = templates.get("result").and_then(Value::as_array).cloned().unwrap_or_default();
+    // The company admin has every tool.
+    let mut roles: Vec<(&str, BTreeMap<String, String>)> =
+        vec![("admin", TOOL_PAGES.iter().map(|(t, _)| ((*t).to_string(), "admin".to_string())).collect())];
+    for (role, name) in ROLE_TEMPLATES {
+        let levels: BTreeMap<String, String> = list
+            .iter()
+            .find(|t| t.get("name").and_then(Value::as_str) == Some(name))
+            .and_then(|t| t.get("levels").and_then(Value::as_object))
+            .map(|m| m.iter().map(|(k, v)| (k.clone(), v.as_str().unwrap_or("none").to_string())).collect())
+            .unwrap_or_default();
+        roles.push((role, levels));
+    }
+    for (role, levels) in roles {
+        let Ok(c) = user(&mut ctx.users, role) else { continue };
+        run.check("access", &format!("{role}: the tools its permission template allows open, the others are refused"), Tag::Smoke, || {
+            if levels.is_empty() {
+                return Err(format!("no permission template found for {role} (template.list answered {status})"));
+            }
+            let mut bad = Vec::new();
+            let (mut open, mut refused) = (0, 0);
+            for (tool, page) in TOOL_PAGES {
+                let level = levels.get(tool).map_or("none", String::as_str);
+                let path = format!("/projects/{p}/{page}");
+                let r = c.get(&path);
+                let shown = r.status == 200 && !r.text().contains(NOT_FOUND_TEXT);
+                if level == "none" {
+                    refused += 1;
+                    if shown {
+                        bad.push(format!("{page} opens with level none"));
+                    }
+                } else {
+                    open += 1;
+                    if !shown {
+                        bad.push(format!("{page} is refused ({}) with level {level}", r.status));
+                    }
+                }
+            }
+            if bad.is_empty() { Ok(format!("{open} tools open, {refused} refused")) } else { Err(bad.join("; ")) }
+        });
+    }
 }
