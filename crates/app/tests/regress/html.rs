@@ -5,6 +5,10 @@
 /// the first checkbox or radio button of that name), as a person would tick the first box.
 pub const FIRST: &str = "\u{1}first";
 
+/// In [`Form::fill`]: `LABEL` followed by some text chooses the select option whose text contains it (a person picks
+/// a name from a list).
+pub const LABEL: &str = "\u{1}label:";
+
 pub fn unescape(s: &str) -> String {
     s.replace("&quot;", "\"").replace("&#39;", "'").replace("&#x27;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 }
@@ -86,6 +90,8 @@ pub struct Field {
     pub multiple: bool,
     /// For a select: (value, selected).
     pub options: Vec<(String, bool)>,
+    /// For a select: each option's text, in the same order as `options`.
+    pub labels: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -135,6 +141,7 @@ fn fields(inner: &str) -> Vec<Field> {
             checked: attr(&attrs, "checked").is_some(),
             multiple: attr(&attrs, "multiple").is_some(),
             options,
+            labels: Vec::new(),
         };
         match name.as_str() {
             "input" => {
@@ -154,6 +161,7 @@ fn fields(inner: &str) -> Vec<Field> {
             "select" => {
                 let close = inner[pos..].find("</select>").map_or(inner.len(), |c| pos + c);
                 let mut options = Vec::new();
+                let mut labels = Vec::new();
                 let body = &inner[pos..close];
                 let mut at = 0;
                 while let Some(k) = body[at..].find("<option") {
@@ -166,9 +174,12 @@ fn fields(inner: &str) -> Vec<Field> {
                         None => unescape(body[s + e + 1..text_end].trim()),
                     };
                     options.push((value, attr(&oattrs, "selected").is_some()));
+                    labels.push(unescape(body[s + e + 1..text_end].trim()));
                     at = s + e + 1;
                 }
-                out.push(field("select", String::new(), options));
+                let mut select = field("select", String::new(), options);
+                select.labels = labels;
+                out.push(select);
                 pos = close;
             }
             _ => {}
@@ -251,11 +262,23 @@ impl Form {
                 if let Some(first) = self.first_choice(k) {
                     out.push(((*k).to_string(), first));
                 }
+            } else if let Some(text) = v.strip_prefix(LABEL) {
+                if let Some(value) = self.labelled(k, text) {
+                    out.push(((*k).to_string(), value));
+                }
             } else {
                 out.push(((*k).to_string(), (*v).to_string()));
             }
         }
         out
+    }
+
+    /// The value of the first option of select `name` whose text contains `text`.
+    fn labelled(&self, name: &str, text: &str) -> Option<String> {
+        self.fields
+            .iter()
+            .filter(|f| f.name == name)
+            .find_map(|f| f.labels.iter().position(|l| l.contains(text)).and_then(|i| f.options.get(i)).map(|(v, _)| v.clone()))
     }
 
     /// The first choice offered for field `name`: a select's first option with a value, or the first checkbox or

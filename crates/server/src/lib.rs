@@ -1084,6 +1084,10 @@ fn page(app: &App, headers: &HeaderMap, q: &HashMap<String, String>, render: imp
     let csrf = auth::csrf_token(app.secret(), &s.cookie);
     let req = Req { engine: &t.engine, person: s.person, csrf: &csrf, now: Timestamp::from_millis(now_ms()), flash: flash_from(q) };
     let markup = render(&req, t);
+    // A missing record, or one this person may not open, answers 404 (issue #22): never 200.
+    if pages::is_not_found(&markup.0) {
+        return html(StatusCode::NOT_FOUND, markup);
+    }
     // A refused save sends the person back here with what they typed.
     let draft = q.get("draft").and_then(|tok| inner.drafts.get(tok)).filter(|d| d.person == s.person.raw() && d.at.elapsed() < DRAFT_TTL);
     match draft {

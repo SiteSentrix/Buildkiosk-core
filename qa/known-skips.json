@@ -14,24 +14,10 @@
       "quarantine": true
     },
     {
-      "check": "access › refused and missing pages answer 403, 404 or a redirect, not 200",
-      "reason": "FAILS (real finding): the \"not found\" page is served with status 200 (/settings for the subcontractor, a made-up RFI id)",
+      "check": "access › subcontractor: the tools its permission template allows open, the others are refused",
+      "reason": "FAILS (real finding): the template gives Timesheets Read, but the timesheets page needs Standard and says not found",
       "expires": "2026-11-17",
-      "issue": 22,
-      "quarantine": true
-    },
-    {
-      "check": "crawl › subcontractor: every link shown opens (no 4xx, no \"not found\" page)",
-      "reason": "FAILS (real finding): the schedule look-ahead links to task pages read-only people can't open",
-      "expires": "2026-11-17",
-      "issue": 23,
-      "quarantine": true
-    },
-    {
-      "check": "crawl › owner and design team: every link shown opens (no 4xx, no \"not found\" page)",
-      "reason": "FAILS (real finding): the schedule look-ahead links to task pages read-only people can't open",
-      "expires": "2026-11-17",
-      "issue": 23,
+      "issue": 30,
       "quarantine": true
     }
   ]
