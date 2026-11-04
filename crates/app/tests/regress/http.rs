@@ -137,11 +137,8 @@ impl Client {
         let start = Instant::now();
         let raw = self.exchange(method, path, content_type, body);
         let ms = start.elapsed().as_millis();
-        let res = match parse(&raw) {
-            Some((status, headers, body)) => Response { status, headers, body, ms },
-            // The server closed the connection without an answer (status 0 in the report).
-            None => Response { status: 0, headers: Vec::new(), body: Vec::new(), ms },
-        };
+        // No answer at all (the server closed the connection) is status 0 in the report.
+        let res = parse(&raw, ms).unwrap_or(Response { status: 0, headers: Vec::new(), body: Vec::new(), ms });
         for v in res.all("set-cookie") {
             let first = v.split(';').next().unwrap_or("");
             if let Some((k, val)) = first.split_once('=') {
@@ -227,7 +224,7 @@ fn has_source_location(text: &str) -> bool {
     false
 }
 
-fn parse(raw: &[u8]) -> Option<(u16, Vec<(String, String)>, Vec<u8>)> {
+fn parse(raw: &[u8], ms: u128) -> Option<Response> {
     let end = raw.windows(4).position(|w| w == b"\r\n\r\n")?;
     let head = String::from_utf8_lossy(raw.get(..end)?).into_owned();
     let mut lines = head.split("\r\n");
@@ -241,7 +238,7 @@ fn parse(raw: &[u8]) -> Option<(u16, Vec<(String, String)>, Vec<u8>)> {
     } else if let Some(n) = headers.iter().find(|(k, _)| k == "content-length").and_then(|(_, v)| v.parse::<usize>().ok()) {
         body.truncate(n);
     }
-    Some((status, headers, body))
+    Some(Response { status, headers, body, ms })
 }
 
 fn dechunk(mut b: &[u8]) -> Vec<u8> {
