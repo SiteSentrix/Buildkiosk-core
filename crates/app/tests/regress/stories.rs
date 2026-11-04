@@ -92,8 +92,9 @@ pub fn all(run: &mut Run, root: &Path) -> Vec<Seen> {
         loop_stories(run, &mut ctx);
         role_page_stories(run, &mut ctx);
         if run.wants(Tag::Release) {
-            workflow_stories(run, &mut ctx);
             tool_stories(run, &mut ctx);
+            // After the tools: a prime change order needs the prime contract made there.
+            workflow_stories(run, &mut ctx);
             exchange_stories(run, &mut ctx);
             import_stories(run, &mut ctx);
             upload_stories(run, &mut ctx);
@@ -1236,7 +1237,15 @@ fn workflow_stories(run: &mut Run, ctx: &mut Ctx) {
         let base = format!("/projects/{p}/{tool}");
         run.check("loops", &format!("{tool}: create, approve (journal checked)"), Tag::Release, || {
             let n = journal_len(&data);
-            let loc = submit(admin, &format!("{base}/new"), "", &[("title", "QA regression: added blocking at door 12")], None)?;
+            let set = [
+                ("title", "QA regression: added blocking at door 12"),
+                ("commitment", html::FIRST),
+                ("contract", html::FIRST),
+                ("lines.0.cost_code", html::FIRST),
+                ("lines.0.description", "Blocking at door 12"),
+                ("lines.0.amount", "1250.00"),
+            ];
+            let loc = submit(admin, &format!("{base}/new"), "", &set, None)?;
             journaled(&data, n, &format!("{prefix}.")).map_err(|e| format!("{e}, after the form went to {loc}"))?;
             let id = id_after(&loc, &format!("/{tool}/")).ok_or_else(|| format!("created, but no id in {loc}"))?;
             let here = format!("{base}/{id}");
