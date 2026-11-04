@@ -1,0 +1,693 @@
+# Messages from the engine (errors and notices after a save), es: `English<TAB>translation`. The values in `{}` can be numbered `{1}`, `{2}`. Values that are wording the pages have are translated too.
+invalid parameters for `{}`	parámetros no válidos para `{}`
+`{}` is required	falta `{}`
+`{}` must not be negative	`{}` no puede ser negativo
+`{}` is in the past	`{}` está en el pasado
+`{}` is not a valid email address	`{}` no es una dirección de correo válida
+`{}` must be 64 hex digits	`{}` debe tener 64 dígitos hexadecimales
+`{}` must be true or false	`{}` debe ser verdadero o falso
+`{}` must be a whole number	`{}` debe ser un número entero
+`{}` runs past the supported dates	`{}` supera las fechas admitidas
+`{}` is required on every line	`{}` es obligatorio en cada línea
+`{}` can hold at most 10 files	`{}` admite como máximo 10 archivos
+`{}` holds more than {} lines	`{1}` contiene más de {2} líneas
+`{}` type your full name	`{}`: escriba su nombre completo
+`{}` tick the box to say you have read the contract and agree to sign it	`{}`: marque la casilla para indicar que ha leído el contrato y acepta firmarlo
+only admins can see the recycle bin	solo los administradores pueden ver la papelera
+only an admin can change an approved record	solo un administrador puede cambiar un registro aprobado
+you don't have access to {}	no tiene acceso a {}
+{} needs {} access to {} (you have {})	{1} requiere acceso de nivel {2} a {3} (usted tiene {4})
+the totals are too large to add up	los totales son demasiado grandes para sumarse
+the amounts are too large to add up	los importes son demasiado grandes para sumarse
+{} is not in the recycle bin	{} no está en la papelera
+{} is already void	{} ya está anulado
+{} is void	{} está anulado
+you can't edit {}	no puede editar {}
+you can't add files to {}	no puede añadir archivos a {}
+you can't remove files from {}	no puede quitar archivos de {}
+you can't send {}	no puede enviar {}
+that file is not attached	ese archivo no está adjunto
+this link is not valid	este enlace no es válido
+revision not found	no se encontró la revisión
+project {} not found	no se encontró el proyecto {}
+{} {} not found in this project	no se encontró {1} {2} en este proyecto
+add at least one line to {} before approving it	añada al menos una línea a {} antes de aprobarlo
+add at least one line to {} before sending it for signature	añada al menos una línea a {} antes de enviarlo a firma
+{} has no lines to sign for	{} no tiene líneas que firmar
+{} is awarded	{} está adjudicado
+{} is {}; only drafts can be approved	{1} está {2}; solo se pueden aprobar los borradores
+the contract was changed after you opened it; read it again before signing	el contrato cambió después de que lo abriera; léalo de nuevo antes de firmar
+you have already signed this contract	ya firmó este contrato
+the people before you have to sign first; you will get an email when it is your turn	las personas anteriores deben firmar primero; recibirá un correo cuando sea su turno
+this contract is already signed	este contrato ya está firmado
+this contract is not out for signature	este contrato no está pendiente de firma
+your account is disabled	su cuenta está desactivada
+the change could not be saved	no se pudo guardar el cambio
+unknown command `{}`	comando desconocido `{}`
+that company has no standing bid	esa empresa no tiene una oferta vigente
+`{}` needs at least one column	`{}` necesita al menos una columna
+an invoice bills this change order's lines; void or edit that invoice first	una factura cobra las líneas de esta orden de cambio; anule o edite esa factura primero
+`{}` can't be changed; create a new change order instead	`{}` no se puede cambiar; cree una orden de cambio nueva
+choose at least one recipient	elija al menos un destinatario
+`{}` must be between 0 and 100	`{}` debe estar entre 0 y 100
+that person isn't on the project	esa persona no está en el proyecto
+that company has no prequalification record yet	esa empresa aún no tiene un registro de precalificación
+that link was sent too many times	ese enlace se envió demasiadas veces
+that link is already cancelled	ese enlace ya está cancelado
+only project admins can take the resource limits or the calendar from a file	solo los administradores del proyecto pueden tomar los límites de recursos o el calendario de un archivo
+the company isn't set up yet	la empresa aún no está configurada
+only the template's author or a company admin can delete it	solo el autor de la plantilla o un administrador de la empresa puede eliminarla
+project not found	proyecto no encontrado
+`{}` needs at least one working day	`{}` necesita al menos un día laborable
+this package is not taking bids	este paquete no recibe ofertas
+you have no bid on this package	usted no tiene ninguna oferta en este paquete
+that request was already decided	esa solicitud ya fue resuelta
+later invoices build on this one; void them first	las facturas posteriores se basan en esta; anúlelas primero
+only admins can delete invoices (authors can delete their own drafts)	solo los administradores pueden eliminar facturas (los autores pueden eliminar sus propios borradores)
+your account no longer exists	su cuenta ya no existe
+only the item's manager or an admin can send it back	solo el responsable del elemento o un administrador puede devolverlo
+only the item's manager or an admin can close it	solo el responsable del elemento o un administrador puede cerrarlo
+only the item's manager or an admin can reopen it	solo el responsable del elemento o un administrador puede reabrirlo
+only the manager or an inspections admin can reopen an inspection	solo el responsable o un administrador de inspecciones puede reabrir una inspección
+only the manager or an inspections admin can raise punch items	solo el responsable o un administrador de inspecciones puede crear pendientes
+there are no failed lines without a punch item	no hay líneas fallidas sin un pendiente
+only inspections admins can delete inspections (authors can delete their own before any answers)	solo los administradores de inspecciones pueden eliminar inspecciones (los autores pueden eliminar las suyas antes de que haya respuestas)
+only inspections admins can see the recycle bin	solo los administradores de inspecciones pueden ver la papelera
+invoices exist for this commitment; void them first	existen facturas de este compromiso; anúlelas primero
+only commitments admins can delete commitments (authors can delete their own drafts)	solo los administradores de compromisos pueden eliminar compromisos (los autores pueden eliminar sus propios borradores)
+only commitments admins can see the recycle bin	solo los administradores de compromisos pueden ver la papelera
+write the question before opening the RFI	escriba la pregunta antes de abrir la RFI
+assign someone to answer before opening the RFI	asigne a alguien para responder antes de abrir la RFI
+only the RFI manager or an RFI admin can open an RFI	solo el responsable de la RFI o un administrador de RFI puede abrir una RFI
+only the RFI manager or an RFI admin can give the official response	solo el responsable de la RFI o un administrador de RFI puede dar la respuesta oficial
+only the RFI manager or an RFI admin can close an RFI	solo el responsable de la RFI o un administrador de RFI puede cerrar una RFI
+only the RFI manager or an RFI admin can reopen an RFI	solo el responsable de la RFI o un administrador de RFI puede reabrir una RFI
+only RFI admins can delete RFIs (authors can delete their own drafts)	solo los administradores de RFI pueden eliminar RFI (los autores pueden eliminar sus propios borradores)
+only RFI admins can see the recycle bin	solo los administradores de RFI pueden ver la papelera
+the folder is not empty; move or delete what is in it first	la carpeta no está vacía; mueva o elimine primero lo que contiene
+only the person who added a document or a Documents admin can edit it	solo quien añadió un documento o un administrador de documentos puede editarlo
+only the person who added a document or a Documents admin can delete it	solo quien añadió un documento o un administrador de documentos puede eliminarlo
+only open correspondence can be replied to	solo se puede responder a la correspondencia abierta
+only the author and the people it was sent to can reply	solo el autor y las personas a quienes se envió pueden responder
+only the author or an admin can do that	solo el autor o un administrador puede hacerlo
+it is not in the recycle bin	no está en la papelera
+only the person who drew a markup or a Drawings admin can remove it	solo quien dibujó una marca o un administrador de planos puede quitarla
+another sheet now uses that number	otra hoja ya usa ese número
+only an approved prime contract can be invoiced	solo un contrato principal aprobado puede facturarse
+only an approved commitment can be invoiced	solo un compromiso aprobado puede facturarse
+only project admins can add project admins	solo los administradores del proyecto pueden añadir administradores del proyecto
+only project admins can change who is a project admin	solo los administradores del proyecto pueden cambiar quién es administrador del proyecto
+`{}` is before the start date	`{}` es anterior a la fecha de inicio
+this contract can't be signed now	este contrato no se puede firmar ahora
+this contract has no lines to sign for	este contrato no tiene líneas que firmar
+the company counter-signs as a person	la empresa contrafirma como persona
+`{}` is needed to add more signers or to sign in order	`{}` es necesario para añadir más firmantes o firmar en orden
+`{}` is needed for the company to counter-sign after the others	`{}` es necesario para que la empresa contrafirme después de los demás
+the path crosses itself, repeats a point or doubles back; draw it so its sides only meet at corners	el trayecto se cruza, repite un punto o retrocede; dibújelo de modo que sus lados solo se unan en las esquinas
+`{}` is required for a text markup	`{}` es obligatorio para una marca de texto
+only commitments admins can clear a signed contract	solo los administradores de compromisos pueden borrar un contrato firmado
+give your insurance or licence date, or attach a file, before sending your record	indique la fecha de su seguro o licencia, o adjunte un archivo, antes de enviar su registro
+that address already has a link; send it again instead	esa dirección ya tiene un enlace; envíelo de nuevo
+there is no questionnaire to answer	no hay ningún cuestionario que responder
+only an admin can send a link for an approved record	solo un administrador puede enviar un enlace de un registro aprobado
+{} already has {} files	{} ya tiene {} archivos
+`{}` line {}: {}	`{}` línea {}: {}
+company {} not found	empresa {} no encontrada
+bid package {} not found in this project	paquete de licitación {} no encontrado en este proyecto
+`{}` lists more than {} people	`{}` enumera a más de {} personas
+report {} not found	informe {} no encontrado
+drawing {} not found in this project	plano {} no encontrado en este proyecto
+catalogue item {} not found	artículo {} del catálogo no encontrado
+{} is complete; reopen it to change it	{} está completo; reábralo para cambiarlo
+there is already a template called {}	ya hay una plantilla llamada {}
+questionnaire {} not found	cuestionario {} no encontrado
+person {} not found	persona {} no encontrada
+no link {} on this record	no hay enlace {} en este registro
+no link {} on this package	no hay enlace {} en este paquete
+meeting {} not found in this project	reunión {} no encontrada en este proyecto
+markup {} not found	anotación {} no encontrada
+estimate {} not found in this project	estimación {} no encontrada en este proyecto
+assembly {} not found	conjunto {} no encontrado
+a folder named {} is already there	ya hay una carpeta llamada {}
+`{}` {} was not found in this project	`{}` {} no se encontró en este proyecto
+`{}` {} is already in the directory	`{}` {} ya está en el directorio
+`{}` there is no line {}	`{}` no hay línea {}
+`{}` holds more than {} items	`{}` contiene más de {} elementos
+{} was issued; reopen it to edit it	{} fue emitido; reábralo para editarlo
+{} was already sent	{} ya fue enviado
+{} not found in this project	{} no encontrado en este proyecto
+{} is already {}	{} ya está {}
+{} has not been sent	{} no se ha enviado
+{} has no such item	{} no tiene ese elemento
+{} has no action {}	{} no tiene la acción {}
+transmittal {} not found in this project	remisión {} no encontrada en este proyecto
+too many links	demasiados enlaces
+the record already has {} files	el registro ya tiene {} archivos
+template {} not found	plantilla {} no encontrada
+task {} not found in this project	tarea {} no encontrada en este proyecto
+submittal {} not found in this project	submittal {} no encontrado en este proyecto
+photo {} not found in this project	foto {} no encontrada en este proyecto
+no request {} on this package	no hay solicitud {} en este paquete
+inspection {} not found in this project	inspección {} no encontrada en este proyecto
+holiday list {} not found	lista de feriados {} no encontrada
+group {} not found	grupo {} no encontrado
+form {} not found in this project	formulario {} no encontrado en este proyecto
+document {} not found in this project	documento {} no encontrado en este proyecto
+daily log {} not found in this project	bitácora diaria {} no encontrada en este proyecto
+crew {} not found in this project	cuadrilla {} no encontrada en este proyecto
+cost code {} not found in this project	código de costo {} no encontrado en este proyecto
+correspondence {} not found in this project	correspondencia {} no encontrada en este proyecto
+commitment {} not found in this project	compromiso {} no encontrado en este proyecto
+budget view {} not found in this project	vista de presupuesto {} no encontrada en este proyecto
+action plan {} not found in this project	plan de acción {} no encontrado en este proyecto
+a schedule holds at most {} tasks	un cronograma admite como máximo {} tareas
+a form template named {} already exists	ya existe una plantilla de formulario llamada {}
+`{}` task {} already depends on this task; that would make a loop	`{}` la tarea {} ya depende de esta tarea; eso crearía un bucle
+`{}` project number {} is in use	`{}` el número de proyecto {} está en uso
+`{}` people who sign in need an email address	`{}` las personas que inician sesión necesitan un correo electrónico
+`{}` needs at least one checklist line	`{}` necesita al menos una línea de lista de control
+`{}` must look like rfi:12	`{}` debe tener el formato rfi:12
+`{}` must be a list of text	`{}` debe ser una lista de textos
+`{}` must be a list of objects	`{}` debe ser una lista de objetos
+`{}` is priced twice	`{}` tiene precio dos veces
+`{}` is out of range	`{}` está fuera de rango
+`{}` has too many entries	`{}` tiene demasiadas entradas
+`{}` group {} not found	`{}` grupo {} no encontrado
+`{}` a task can't follow itself	`{}` una tarea no puede seguirse a sí misma
+`{}` `{}` is not a tool	`{}` `{}` no es una herramienta
+`{}` `{}` is not a quantity above zero	`{}` `{}` no es una cantidad mayor que cero
+RFI {} not found in this project	RFI {} no encontrada en este proyecto
+{} is not out for signature	{} no está pendiente de firma
+{} is not complete	{} no está completo
+{} is complete	{} está completo
+{} is closed; reopen it to comment	{} está cerrado; reábralo para comentar
+{} is already signed	{} ya está firmado
+{} is already recorded as signed	{} ya consta como firmado
+{} is already on the project	{} ya está en el proyecto
+{} is already closed	{} ya está cerrado
+{} is a draft	{} es un borrador
+{} has too many comments	{} tiene demasiados comentarios
+{} has signed already	{} ya ha firmado
+{} has not been sent for review yet	{} aún no se ha enviado a revisión
+{} has no revision to mark up yet	{} aún no tiene revisión para anotar
+{} has no revision to issue yet	{} aún no tiene revisión para emitir
+{} already has a revision {}	{} ya tiene una revisión {}
+you have signed this form in another role already	ya firmó este formulario con otro rol
+you have already reviewed this revision	ya revisó esta revisión
+you can't submit {}	no puede enviar {}
+you can't delete yourself	no puede eliminarse a sí mismo
+you can't change {}	no puede cambiar {}
+time entry {} not found in this project	registro de horas {} no encontrado en este proyecto
+this direct cost is not in the recycle bin	este costo directo no está en la papelera
+this daily log is not in the recycle bin	esta bitácora diaria no está en la papelera
+this daily log is already submitted	esta bitácora diaria ya está enviada
+this daily log is already a draft	esta bitácora diaria ya es un borrador
+this action is done	esta acción está hecha
+this action already has a task	esta acción ya tiene una tarea
+this RFI has too many responses	esta RFI tiene demasiadas respuestas
+there is already a daily log for {}	ya hay una bitácora diaria para {}
+there are no tasks to save a baseline of	no hay tareas de las que guardar una línea base
+the transmittal is not in the recycle bin	la remisión no está en la papelera
+the task is not in the recycle bin	la tarea no está en la papelera
+the task has child tasks; delete or move them first	la tarea tiene subtareas; elimínelas o muévalas primero
+the quantity is too large	la cantidad es demasiado grande
+the photo is not in the recycle bin	la foto no está en la papelera
+the package is not in the recycle bin	el paquete no está en la papelera
+the meeting is not in the recycle bin	la reunión no está en la papelera
+the minutes were already issued	la minuta ya fue emitida
+the minutes are not issued	la minuta no está emitida
+the line total is too large	el total de la línea es demasiado grande
+the form is not submitted	el formulario no está enviado
+the form is not in the recycle bin	el formulario no está en la papelera
+the estimate is not in the recycle bin	la estimación no está en la papelera
+the drawing is not in the recycle bin	el plano no está en la papelera
+the document is not in the recycle bin	el documento no está en la papelera
+the contract for {} is not out for signature	el contrato de {} no está pendiente de firma
+the contract for {} is already signed	el contrato de {} ya está firmado
+the contract for {} has not been sent	el contrato de {} no se ha enviado
+the company has already counter-signed {}	la empresa ya ha contrafirmado {}
+the original budget is locked; unlock it first	el presupuesto original está bloqueado; desbloquéelo primero
+that link was cancelled; send a new one with prequal.invite	ese enlace fue cancelado; envíe uno nuevo con prequal.invite
+that link was cancelled; send a new one with bid_package.invite	ese enlace fue cancelado; envíe uno nuevo con bid_package.invite
+that file is not attached to this {}	ese archivo no está adjunto a este {}
+that file is not attached to this transmittal	ese archivo no está adjunto a esta remisión
+that file is not attached to this submittal	ese archivo no está adjunto a este submittal
+that file is not attached to this record	ese archivo no está adjunto a este registro
+that file is not attached to this meeting	ese archivo no está adjunto a esta reunión
+that file is not attached to this line	ese archivo no está adjunto a esta línea
+that file is not attached to this inspection	ese archivo no está adjunto a esta inspección
+that file is not attached to this daily log	ese archivo no está adjunto a esta bitácora diaria
+that file is not attached to this commitment	ese archivo no está adjunto a este compromiso
+that file is not attached to this action plan	ese archivo no está adjunto a este plan de acción
+that file is not attached to this RFI	ese archivo no está adjunto a esta RFI
+that file is already the current version	ese archivo ya es la versión actual
+that company was not invited	esa empresa no fue invitada
+that company has no bid	esa empresa no tiene oferta
+that already has {} files	eso ya tiene {} archivos
+template not found	plantilla no encontrada
+summary tasks nest at most {} deep	las tareas resumen se anidan como máximo {} niveles
+snapshot {} not found in this project	instantánea {} no encontrada en este proyecto
+sheet {} is already in the log	la hoja {} ya está en el registro
+set the scoring criteria first	defina primero los criterios de puntuación
+set the package's cost code to start a commitment	defina el código de costo del paquete para iniciar un compromiso
+{} is {}; links go out while it is a draft or out for bid	{} está {}; los enlaces salen mientras es un borrador o está en licitación
+the catalogue is for people who work on estimates	el catálogo es para quienes trabajan en estimaciones
+correspondence type {} not found in this project	tipo de correspondencia {} no encontrado en este proyecto
+a package has at most {} addenda	un paquete admite como máximo {} adendas
+`{}` the amounts are too large to add up	`{}` los importes son demasiado grandes para sumarse
+`{}` must be commitment, prime_contract or prime_change	`{}` debe ser commitment, prime_contract o prime_change
+`{}` is required on every alternate	`{}` es obligatorio en cada alternativa
+`{}` holds more than {} rows	`{}` contiene más de {} filas
+`{}` holds more than {} ids	`{}` contiene más de {} identificadores
+`{}` holds more than {} alternates	`{}` contiene más de {} alternativas
+`{}` has more than {} sections	`{}` tiene más de {} secciones
+`{}` has more than {} rows	`{}` tiene más de {} filas
+`{}` has more than {} lines	`{}` tiene más de {} líneas
+`{}` a template called {} exists	`{}` ya existe una plantilla llamada {}
+`{}` `{}` is not a rate such as 0.85 (up to 9.99)	`{}` `{}` no es una tarifa como 0.85 (hasta 9.99)
+`{}` `{}` is not a number of hours (0 to 24, one decimal)	`{}` `{}` no es un número de horas (0 a 24, un decimal)
+`{}` `{}` is not a level for {}	`{}` `{}` no es un nivel para {}
+{} would have more than {} actions	{} tendría más de {} acciones
+{} was already submitted	{} ya fue enviado
+{} was already started	{} ya fue iniciado
+{} was already issued	{} ya fue emitido
+{} of {} items are still open	{} de {} elementos siguen abiertos
+{} now belongs to someone else in the directory	{} ahora pertenece a otra persona del directorio
+{} must be signed: type your full name to sign it	{} debe firmarse: escriba su nombre completo para firmarlo
+{} must be approved before its change orders can be	{} debe aprobarse antes que sus órdenes de cambio
+{} is {}; void it instead	{} está {}; anúlelo en su lugar
+{} is {}; only submitted invoices can go back to draft	{} está {}; solo las facturas enviadas pueden volver a borrador
+{} is {}; only submitted invoices can be approved	{} está {}; solo se pueden aprobar facturas enviadas
+{} is {}; only submittals in review take reviews	{} está {}; solo los submittals en revisión admiten revisiones
+{} is {}; only submittals in review can be closed	{} está {}; solo se pueden cerrar submittals en revisión
+{} is {}; only open items can be marked done	{} está {}; solo los elementos abiertos pueden marcarse como hechos
+{} is {}; only open RFIs take responses	{} está {}; solo las RFI abiertas admiten respuestas
+{} is {}; only open RFIs can be closed	{} está {}; solo se pueden cerrar RFI abiertas
+{} is {}; only items ready for review can be sent back	{} está {}; solo los elementos listos para revisión pueden devolverse
+{} is {}; only drafts can be edited (by their author or an admin)	{} está {}; solo los borradores pueden editarse (por su autor o un administrador)
+{} is {}; only closed items can be reopened	{} está {}; solo los elementos cerrados pueden reabrirse
+{} is {}; only closed RFIs can be reopened	{} está {}; solo las RFI cerradas pueden reabrirse
+{} is {}; only approved invoices can be paid	{} está {}; solo se pueden pagar facturas aprobadas
+{} is {}; only approved commitments can be completed	{} está {}; solo los compromisos aprobados pueden completarse
+{} is {}; its signature can't change	{} está {}; su firma no puede cambiar
+{} is {}; it can't be voided	{} está {}; no puede anularse
+{} is {}; bids can be recorded once it is out for bid	{} está {}; las ofertas se pueden registrar cuando esté en licitación
+{} is void; its signature can't change	{} está anulado; su firma no puede cambiar
+{} is void; files can't be added	{} está anulado; no se pueden añadir archivos
+{} is still in progress	{} sigue en curso
+{} is not waiting for the company to counter-sign	{} no espera la contrafirma de la empresa
+{} is already in the directory; choose it from the list	{} ya está en el directorio; elíjalo de la lista
+{} is already in the budget	{} ya está en el presupuesto
+{} has the most lines it can hold	{} tiene el máximo de líneas que admite
+{} has no alternate {}	{} no tiene la alternativa {}
+{} has no addendum {}	{} no tiene la adenda {}
+{} can't be signed now	{} no puede firmarse ahora
+{} already has {} replies	{} ya tiene {} respuestas
+you can't issue the minutes of {}	no puede emitir la minuta de {}
+too many questions on this package; contact the team directly	demasiadas preguntas en este paquete; contacte al equipo directamente
+those measurements are in different units; set the sheet's scale to one unit	esas mediciones están en unidades distintas; ajuste la escala del plano a una sola unidad
+this project requires signed contracts, so an approved document keeps its signature	este proyecto exige contratos firmados, así que un documento aprobado conserva su firma
+this project requires signed contracts, so an approved commitment keeps its signature	este proyecto exige contratos firmados, así que un compromiso aprobado conserva su firma
+this package requires a bid bond; record that the company's bond was received first	este paquete exige una fianza de licitación; registre primero que se recibió la fianza de la empresa
+this package has too many requests waiting; contact the team directly	este paquete tiene demasiadas solicitudes en espera; contacte al equipo directamente
+this package has no addendum {}	este paquete no tiene la adenda {}
+this daily log already has 30 files	esta bitácora diaria ya tiene 30 archivos
+these hours can't be deleted now	estas horas no pueden eliminarse ahora
+these hours can't be changed now	estas horas no pueden cambiarse ahora
+there is no standing bid to add	no hay una oferta vigente que añadir
+there is no earlier meeting to carry actions from	no hay una reunión anterior de la que trasladar acciones
+there are no submitted hours to send back	no hay horas enviadas que devolver
+there are no submitted hours to approve	no hay horas enviadas que aprobar
+there are no draft hours in that range to submit	no hay horas en borrador en ese rango que enviar
+the template is in use by {} people; give them another template first	la plantilla la usan {} personas; asígneles otra plantilla primero
+the prime contract must be approved before its change orders can be	el contrato principal debe aprobarse antes que sus órdenes de cambio
+the plan is not in the recycle bin	el plan no está en la papelera
+the plan has no items to keep	el plan no tiene elementos que conservar
+the other project already has a form template named {}	el otro proyecto ya tiene una plantilla de formulario llamada {}
+the original budget is locked; change it with a budget change, or unlock it first	el presupuesto original está bloqueado; cámbielo con un cambio de presupuesto o desbloquéelo primero
+the measurements add up to nothing	las mediciones suman cero
+the links don't settle; check them for a loop	los enlaces no se resuelven; compruebe si hay un bucle
+the link was replaced too many times	el enlace se reemplazó demasiadas veces
+the labour cost is too large to post	el costo de mano de obra es demasiado grande para registrarse
+the item has 200 comments already	el elemento ya tiene 200 comentarios
+the invoice's prime contract is missing	falta el contrato principal de la factura
+the invoice's commitment is missing	falta el compromiso de la factura
+the estimate has no lines to keep	la estimación no tiene líneas que conservar
+the due date for this package has passed; ask the team to reopen it	venció la fecha límite de este paquete; pida al equipo que lo reabra
+the contract for {} is already recorded as signed	el contrato de {} ya consta como firmado
+the company needs at least one active company admin who can sign in	la empresa necesita al menos un administrador activo que pueda iniciar sesión
+the company keeps at most {} saved reports	la empresa guarda como máximo {} informes
+the company keeps at most 500 plan templates	la empresa guarda como máximo 500 plantillas de plan
+the company keeps at most 500 estimate templates	la empresa guarda como máximo 500 plantillas de estimación
+the company keeps at most 50 holiday lists	la empresa guarda como máximo 50 listas de feriados
+the company is already set up	la empresa ya está configurada
+the company has no questionnaire to score	la empresa no tiene un cuestionario que puntuar
+the catalogue holds at most {} items	el catálogo admite como máximo {} artículos
+the bid package has no cost code; set one first	el paquete de licitación no tiene código de costo; defina uno primero
+that makes more than 24 hours on one day	eso suma más de 24 horas en un día
+that is too large to measure	eso es demasiado grande para medirlo
+that file is not one you attached	ese archivo no es uno de los que adjuntó
+that file is not attached to your bid	ese archivo no está adjunto a su oferta
+that company has no prequalification record	esa empresa no tiene registro de precalificación
+that company already acknowledged this addendum	esa empresa ya confirmó la recepción de esta adenda
+that address has already asked to bid on this package	esa dirección ya pidió ofertar en este paquete
+that address already has a link for this package; send it again instead	esa dirección ya tiene un enlace para este paquete; envíelo de nuevo
+task.mine lists a person's tasks; run it as a person	task.mine muestra las tareas de una persona; ejecútelo como persona
+some hours have no cost code: pass default_cost_code or give them one	algunas horas no tienen código de costo: indique default_cost_code o asígneles uno
+sheet {} is already in the log; add a revision to it instead	la hoja {} ya está en el registro; añádale una revisión
+set the scale of page {} first (drawing.scale_set)	defina primero la escala de la página {} (drawing.scale_set)
+set a pay rate first for {}	defina primero una tarifa de pago para {}
+send your bid first, then attach files to it	envíe primero su oferta y luego adjunte archivos
+section {} is already in this project's list	la sección {} ya está en la lista de este proyecto
+sealed bids are waiting; open them before changing this	hay ofertas selladas en espera; ábralas antes de cambiar esto
+reviewers answer in order: it is not your turn yet	los revisores responden en orden: aún no es su turno
+response {} not found on {}	respuesta {} no encontrada en {}
+reports are scheduled by a person	los informes los programa una persona
+reports are saved by a person	los informes los guarda una persona
+reports are deleted by a person	los informes los elimina una persona
+report {} is not emailed	el informe {} no se envía por correo
+receipt was already acknowledged	el acuse de recibo ya fue confirmado
+receipt is acknowledged by a person	el acuse de recibo lo confirma una persona
+plan templates need access to action plans on a project	las plantillas de plan requieren acceso a los planes de acción de un proyecto
+plan template {} not found	plantilla de plan {} no encontrada
+person {} is not in the recycle bin	la persona {} no está en la papelera
+pay rate {} not found in this project	tarifa de pago {} no encontrada en este proyecto
+page {} has no scale	la página {} no tiene escala
+only the reviewers of {} can review it	solo los revisores de {} pueden revisarlo
+only the person who recorded a direct cost, or an admin, can delete it	solo quien registró un costo directo, o un administrador, puede eliminarlo
+only the person who recorded a direct cost, or an admin, can change it	solo quien registró un costo directo, o un administrador, puede cambiarlo
+only the person who added a photo or a Photos admin can tag it	solo quien añadió una foto o un administrador de Fotos puede etiquetarla
+only the person who added a photo or a Photos admin can edit it	solo quien añadió una foto o un administrador de Fotos puede editarla
+only the person who added a photo or a Photos admin can delete it	solo quien añadió una foto o un administrador de Fotos puede eliminarla
+only the person it is assigned to, the manager or an admin can tick an item	solo la persona asignada, el responsable o un administrador puede marcar un elemento
+only the person it is assigned to, the author or an admin can make a task from an action	solo la persona asignada, el autor o un administrador puede crear una tarea a partir de una acción
+{}'s prequalification has lapsed; renew it first (this company requires a current one)	la precalificación de {} ha caducado; renuévela primero (esta empresa exige una vigente)
+{} is not prequalified (this company requires an approved prequalification)	{} no está precalificado (esta empresa exige una precalificación aprobada)
+{} approver(s) have not approved {} yet	{} aprobador(es) aún no han aprobado {}
+your record is {}; it can't be changed now. Leave a message for the reviewers instead	su registro está {}; ya no puede cambiarse. Deje un mensaje a los revisores
+there are no approved hours in that range that were not posted already	no hay horas aprobadas en ese rango que no se hayan registrado ya
+the record is {}	el registro está {}
+that version was replaced by questionnaire {}; change that one	esa versión fue reemplazada por el cuestionario {}; cambie ese
+only the submittal's author, its manager or a submittals admin can send it for review	solo el autor del submittal, su responsable o un administrador de submittals puede enviarlo a revisión
+only the submittal manager or a submittals admin can send a submittal for review	solo el responsable del submittal o un administrador de submittals puede enviar un submittal a revisión
+only the submittal manager or a submittals admin can resubmit a submittal	solo el responsable del submittal o un administrador de submittals puede reenviar un submittal
+only the submittal manager or a submittals admin can close a submittal	solo el responsable del submittal o un administrador de submittals puede cerrar un submittal
+only the sender or an admin can record receipt for someone else	solo el remitente o un administrador puede registrar el acuse de recibo de otra persona
+only the person it is assigned to, the author or an admin can change an action	solo la persona asignada, el autor o un administrador puede cambiar una acción
+only the people it was sent to can acknowledge it	solo las personas a quienes se envió pueden confirmar su recepción
+only the people assigned to {} or its manager can mark the work done	solo las personas asignadas a {} o su responsable pueden marcar el trabajo como hecho
+only the manager or an inspections admin can edit {}	solo el responsable o un administrador de inspecciones puede editar {}
+only the manager or an admin can start the plan	solo el responsable o un administrador puede iniciar el plan
+only the manager or an admin can reopen the plan	solo el responsable o un administrador puede reabrir el plan
+only the manager or an admin can name approvers	solo el responsable o un administrador puede nombrar aprobadores
+only the manager or an admin can edit {}	solo el responsable o un administrador puede editar {}
+only the manager or an admin can delete the plan	solo el responsable o un administrador puede eliminar el plan
+only the manager or an admin can complete the plan	solo el responsable o un administrador puede completar el plan
+only the manager or an admin can assign items, set dates or add notes	solo el responsable o un administrador puede asignar elementos, fijar fechas o añadir notas
+only the item's owner, the manager or people with Standard access can comment	solo el propietario del elemento, el responsable o quien tenga acceso Estándar puede comentar
+only the inspector or manager of {} can remove files from its lines	solo el inspector o el responsable de {} puede quitar archivos de sus líneas
+only the inspector or manager of {} can complete it	solo el inspector o el responsable de {} puede completarla
+only the inspector or manager of {} can add files to its lines	solo el inspector o el responsable de {} puede añadir archivos a sus líneas
+only the author or an admin can submit {}	solo el autor o un administrador puede enviar {}
+only the author or an admin can close {}	solo el autor o un administrador puede cerrar {}
+only the author or a daily log admin can submit this daily log	solo el autor o un administrador de bitácoras diarias puede enviar esta bitácora
+only the author of a draft or an admin can delete correspondence	solo el autor de un borrador o un administrador puede eliminar correspondencia
+only the author of a draft or an admin can delete a transmittal	solo el autor de un borrador o un administrador puede eliminar una remisión
+only the author of a draft or an admin can delete a form	solo el autor de un borrador o un administrador puede eliminar un formulario
+only the author of a draft or a daily log admin can remove files from this daily log	solo el autor de un borrador o un administrador de bitácoras diarias puede quitar archivos de esta bitácora
+only the author of a draft or a daily log admin can add files to this daily log	solo el autor de un borrador o un administrador de bitácoras diarias puede añadir archivos a esta bitácora
+only the author before the minutes are issued, or an admin, can delete a meeting	solo el autor antes de emitir la minuta, o un administrador, puede eliminar una reunión
+only the RFI's author, its manager or an RFI admin can open it	solo el autor de la RFI, su responsable o un administrador de RFI puede abrirla
+only the RFI manager or an RFI admin can choose the official response	solo el responsable de la RFI o un administrador de RFI puede elegir la respuesta oficial
+only submittals admins can see the recycle bin	solo los administradores de submittals pueden ver la papelera
+only submittals admins can delete submittals (authors can delete their own drafts)	solo los administradores de submittals pueden eliminar submittals (los autores pueden eliminar sus propios borradores)
+only measurements, counts and pins have a cost code	solo las mediciones, los conteos y las chinchetas tienen código de costo
+only its owner or a company admin can email a report	solo su propietario o un administrador de la empresa puede enviar un informe por correo
+only its owner or a company admin can delete a report	solo su propietario o un administrador de la empresa puede eliminar un informe
+only its owner or a company admin can change a report	solo su propietario o un administrador de la empresa puede cambiar un informe
+only daily log admins can see the recycle bin	solo los administradores de bitácoras diarias pueden ver la papelera
+only daily log admins can delete daily logs (authors can delete their own drafts)	solo los administradores de bitácoras diarias pueden eliminar bitácoras (los autores pueden eliminar sus propios borradores)
+only company admins keep the company's holiday lists	solo los administradores de la empresa mantienen las listas de feriados de la empresa
+only company admins can make or remove company admins	solo los administradores de la empresa pueden crear o quitar administradores de la empresa
+only commitments admins can remove files once a commitment is approved	solo los administradores de compromisos pueden quitar archivos una vez aprobado un compromiso
+only assignees, the RFI manager and RFI admins can respond to {}	solo los asignados, el responsable de la RFI y los administradores de RFI pueden responder a {}
+only admins can delete a {} (authors can delete their own until it is settled)	solo los administradores pueden eliminar un {} (los autores pueden eliminar el suyo hasta que se resuelva)
+only admins can delete a {} (authors can delete their own open ones)	solo los administradores pueden eliminar un {} (los autores pueden eliminar los suyos abiertos)
+only admins can clear a recorded signature	solo los administradores pueden borrar una firma registrada
+only a signed-in person has a language	solo una persona con sesión iniciada tiene un idioma
+only a named approver can answer	solo un aprobador designado puede responder
+only Timesheets admins can submit someone else's hours	solo los administradores de Hojas de horas pueden enviar las horas de otra persona
+only Timesheets admins can see other people's hours	solo los administradores de Hojas de horas pueden ver las horas de otras personas
+only Timesheets admins can log hours for someone else	solo los administradores de Hojas de horas pueden registrar horas de otra persona
+only Timesheets admins can log hours for a crew	solo los administradores de Hojas de horas pueden registrar horas de una cuadrilla
+only Documents admins can restrict a document to named people	solo los administradores de Documentos pueden restringir un documento a personas concretas
+only Documents admins can make a folder private	solo los administradores de Documentos pueden hacer privada una carpeta
+only Documents admins can change who may open a folder	solo los administradores de Documentos pueden cambiar quién puede abrir una carpeta
+only Directory admins can give or remove sign-in access	solo los administradores del Directorio pueden dar o quitar el acceso de inicio de sesión
+only Directory admins can deactivate people	solo los administradores del Directorio pueden desactivar personas
+only Directory admins can change company permissions	solo los administradores del Directorio pueden cambiar los permisos de la empresa
+notifications belong to a person	las notificaciones pertenecen a una persona
+notification {} not found	notificación {} no encontrada
+no sealed bids are waiting	no hay ofertas selladas en espera
+no question {} on this package	no hay pregunta {} en este paquete
+no measurements on the sheet match that kind and label	ninguna medición del plano coincide con ese tipo y etiqueta
+meeting template {} not found in this project	plantilla de reunión {} no encontrada en este proyecto
+making a task needs Standard access to Tasks	crear una tarea requiere acceso Estándar a Tareas
+list at least one item or attach a file	indique al menos un elemento o adjunte un archivo
+line {} already has 5 files	la línea {} ya tiene 5 archivos
+keeping the catalogue takes Standard access to Estimating on a project	mantener el catálogo requiere acceso Estándar a Estimación de costos en un proyecto
+issue the estimate before putting it in the budget	emita la estimación antes de ponerla en el presupuesto
+invoices exist for this contract; void them first	existen facturas de este contrato; anúlelas primero
+invoices exist for this contract, so its schedule of values can't change	existen facturas de este contrato, así que su calendario de valores no puede cambiar
+invoices exist for this commitment, so its lines can't change (use a change order)	existen facturas de este compromiso, así que sus líneas no pueden cambiar (use una orden de cambio)
+invite at least one company first, or turn on the open bid link	invite primero al menos a una empresa, o active el enlace de licitación abierto
+inspection template not found in this project	plantilla de inspección no encontrada en este proyecto
+form template {} not found in this project	plantilla de formulario {} no encontrada en este proyecto
+form schedule {} not found in this project	programación de formulario {} no encontrada en este proyecto
+folders nest at most {} deep	las carpetas se anidan como máximo {} niveles
+folder {} not found in this project	carpeta {} no encontrada en este proyecto
+estimate templates need access to estimating on a project	las plantillas de estimación requieren acceso a la estimación de costos de un proyecto
+estimate template {} not found	plantilla de estimación {} no encontrada
+enter some work completed on {} before submitting it	anote algo de trabajo completado en {} antes de enviarlo
+direct cost {} not found in this project	costo directo {} no encontrado en este proyecto
+cost code {} not found for this project	código de costo {} no encontrado para este proyecto
+companies are answering this questionnaire; change theirs first	hay empresas respondiendo este cuestionario; cambie primero las suyas
+choose at least one reviewer before sending the submittal for review	elija al menos un revisor antes de enviar el submittal a revisión
+choose a questionnaire first	elija primero un cuestionario
+baseline {} not found in this project	línea base {} no encontrada en este proyecto
+at most {} questionnaires	como máximo {} cuestionarios
+at most {} assemblies	como máximo {} conjuntos
+assemblies are for people who work on estimates	los conjuntos son para quienes trabajan en estimaciones
+answer these first: {}	responda primero estas: {}
+an assembly uses this item; take it out of the assembly first	un conjunto usa este artículo; quítelo primero del conjunto
+adding cost codes takes a project admin	añadir códigos de costo requiere un administrador del proyecto
+add at least one line first	añada primero al menos una línea
+add at least one item first	añada primero al menos un elemento
+a summary task follows its tasks; move those instead	una tarea resumen sigue a sus tareas; mueva estas en su lugar
+a signature belongs to a person	una firma pertenece a una persona
+a sheet keeps at most {} revisions	una hoja admite como máximo {} revisiones
+a revision holds at most {} markups	una revisión admite como máximo {} anotaciones
+a record can have at most {} links	un registro puede tener como máximo {} enlaces
+a project's log holds at most {} sheets	el registro de un proyecto admite como máximo {} hojas
+a project keeps at most {} snapshots	un proyecto guarda como máximo {} instantáneas
+a project keeps at most {} budget views	un proyecto guarda como máximo {} vistas de presupuesto
+a project keeps at most 5,000 pay rates	un proyecto guarda como máximo 5000 tarifas de pago
+a project keeps at most 30 correspondence types	un proyecto guarda como máximo 30 tipos de correspondencia
+a project keeps at most 20 baselines; delete one first	un proyecto guarda como máximo 20 líneas base; elimine una primero
+a project keeps at most 100 meeting templates	un proyecto guarda como máximo 100 plantillas de reunión
+a project keeps at most 100 form schedules	un proyecto guarda como máximo 100 programaciones de formularios
+a project keeps at most 100 crews	un proyecto guarda como máximo 100 cuadrillas
+a project holds at most {} photos	un proyecto admite como máximo {} fotos
+a project holds at most {} folders	un proyecto admite como máximo {} carpetas
+a photo can be tagged to at most {} items	una foto puede etiquetarse en como máximo {} elementos
+a package invites at most {} companies	un paquete invita como máximo a {} empresas
+a package can invite at most {} companies	un paquete puede invitar como máximo a {} empresas
+a package can have at most {} links	un paquete puede tener como máximo {} enlaces
+a form is signed once it is submitted	un formulario queda firmado al enviarse
+a document keeps at most {} versions	un documento guarda como máximo {} versiones
+a default view belongs to a person	una vista predeterminada pertenece a una persona
+a completed plan takes no more files; reopen it first	un plan completado no admite más archivos; reábralo primero
+a completed plan keeps its files; reopen it first	un plan completado conserva sus archivos; reábralo primero
+a bid can have at most {} files	una oferta puede tener como máximo {} archivos
+{} is {}; only {} change events can be {}	{} está {}; solo los eventos de cambio {} pueden {}
+{} checklist line{} still need an answer	{} línea{} de la lista de control aún necesitan respuesta
+bids are in, and they refer to the scope items, form lines and alternates by place; withdraw them before changing those	ya hay ofertas y se refieren a los elementos del alcance, líneas del formulario y alternativas por posición; retírelas antes de cambiarlos
+an item of this assembly is no longer in the catalogue	un artículo de este conjunto ya no está en el catálogo
+adding a company to the directory needs directory access; choose an existing company instead	añadir una empresa al directorio requiere acceso al directorio; elija una empresa existente
+`{}` {}: the answer must be text	`{}` {}: la respuesta debe ser texto
+`{}` {}: give a score from 0 to 10	`{}` {}: dé una puntuación de 0 a 10
+`{}` {} would be billed {} to date against a scheduled value of {}	`{}` {} se habría facturado {} hasta la fecha frente a un valor programado de {}
+`{}` {} is worked out from the bids, not scored	`{}` {} se calcula a partir de las ofertas, no se puntúa
+`{}` {} is listed twice	`{}` {} aparece dos veces
+`{}` {} has no signing role `{}`	`{}` {} no tiene el rol de firma `{}`
+`{}` {} has no revision {}	`{}` {} no tiene la revisión {}
+`{}` would finish the task before it starts	`{}` terminaría la tarea antes de que empiece
+`{}` weights add up to {}, not 100	`{}` los pesos suman {}, no 100
+`{}` type your own full name to sign	`{}` escriba su propio nombre completo para firmar
+`{}` there is no task {} in this schedule	`{}` no hay tarea {} en este cronograma
+`{}` there is no question `{}`	`{}` no hay pregunta `{}`
+`{}` there is no criterion {}	`{}` no hay criterio {}
+`{}` the totals are too large to add up	`{}` los totales son demasiado grandes para sumarse
+`{}` the total is too large	`{}` el total es demasiado grande
+`{}` the stretch must be at least 1% of the page's height long	`{}` el tramo debe medir al menos el 1 % de la altura de la página
+`{}` the package has no scope item {}	`{}` el paquete no tiene el elemento de alcance {}
+`{}` the package has no alternate {}	`{}` el paquete no tiene la alternativa {}
+`{}` the line total is too large	`{}` el total de la línea es demasiado grande
+`{}` the id {} is used twice	`{}` el identificador {} se usa dos veces
+`{}` the bid form has no line {}	`{}` el formulario de oferta no tiene la línea {}
+`{}` tasks nest more than {} deep	`{}` las tareas se anidan más de {} niveles
+`{}` task {}: predecessor {} would make a loop	`{}` tarea {}: el predecesor {} crearía un bucle
+`{}` task {}: predecessor {} is not in the file	`{}` tarea {}: el predecesor {} no está en el archivo
+`{}` task {}: parent {} is not in the file	`{}` tarea {}: el elemento superior {} no está en el archivo
+`{}` task {}: `{}`: the lag is out of range	`{}` tarea {}: `{}`: el desfase está fuera de rango
+`{}` task {}: `{}` has a bad lag	`{}` tarea {}: `{}` tiene un desfase no válido
+`{}` submittal {} not found in this project	`{}` submittal {} no encontrado en este proyecto
+`{}` section {}, question {} is not on the questionnaire	`{}` la sección {}, pregunta {} no está en el cuestionario
+`{}` row {} is listed twice	`{}` la fila {} aparece dos veces
+`{}` price every line of the bid form ({} of {} given)	`{}` ponga precio a cada línea del formulario de oferta ({} de {} indicadas)
+`{}` plan template {} not found	`{}` plantilla de plan {} no encontrada
+`{}` photos must be JPEG, PNG, GIF or WebP pictures	`{}` las fotos deben ser imágenes JPEG, PNG, GIF o WebP
+`{}` person {} is not an active user with an email address	`{}` la persona {} no es un usuario activo con correo electrónico
+`{}` person {} can't run this report: share it first	`{}` la persona {} no puede ejecutar este informe: compártalo primero
+`{}` only one criterion can be the price	`{}` solo un criterio puede ser el precio
+`{}` needs at least {} points	`{}` necesita al menos {} puntos
+`{}` needs at least one section, and every section at least one question	`{}` necesita al menos una sección, y cada sección al menos una pregunta
+`{}` needs at least one question	`{}` necesita al menos una pregunta
+`{}` needs 1 to {} parts	`{}` necesita de 1 a {} partes
+`{}` names more than {} people	`{}` nombra a más de {} personas
+`{}` names more than five roles	`{}` nombra más de cinco roles
+`{}` names more than 200 people	`{}` nombra a más de 200 personas
+`{}` names more than 20 people	`{}` nombra a más de 20 personas
+`{}` name between 1 and {} people	`{}` nombre entre 1 y {} personas
+`{}` name at least one person who should see it	`{}` nombre al menos a una persona que deba verlo
+`{}` name at least one person to send it to	`{}` nombre al menos a una persona a quien enviarlo
+`{}` must not be zero	`{}` no puede ser cero
+`{}` must contain letters or digits	`{}` debe contener letras o dígitos
+`{}` must be weekly, biweekly or monthly (and stay inside the supported dates)	`{}` debe ser weekly, biweekly o monthly (y quedar dentro de las fechas admitidas)
+`{}` must be text	`{}` debe ser texto
+`{}` must be pass, fail or na	`{}` debe ser pass, fail o na
+`{}` must be one of the columns	`{}` debe ser una de las columnas
+`{}` must be on or after from, within a year	`{}` debe ser igual o posterior a from, dentro de un año
+`{}` must be off, daily, weekly or monthly	`{}` debe ser off, daily, weekly o monthly
+`{}` must be labor, material, equipment, subcontract or other	`{}` debe ser labor, material, equipment, subcontract u other
+`{}` must be en, es, fr or nl (empty follows the browser)	`{}` debe ser en, es, fr o nl (vacío sigue al navegador)
+`{}` must be dim, area, pin or count	`{}` debe ser dim, area, pin o count
+`{}` must be daily, weekly, biweekly, monthly, month_end, quarterly or yearly	`{}` debe ser daily, weekly, biweekly, monthly, month_end, quarterly o yearly
+`{}` must be between {} and {}	`{}` debe estar entre {} y {}
+`{}` must be between 100% and 500%	`{}` debe estar entre el 100 % y el 500 %
+`{}` must be between 0 and 168	`{}` debe estar entre 0 y 168
+`{}` must be approved or rejected	`{}` debe ser approved o rejected
+`{}` must be approval, insurance or license	`{}` debe ser approval, insurance o license
+`{}` must be an id	`{}` debe ser un identificador
+`{}` must be above zero	`{}` debe ser mayor que cero
+`{}` must be above 0 and at most 100	`{}` debe ser mayor que 0 y como máximo 100
+`{}` must be above 0 and at most 10,000 an hour	`{}` debe ser mayor que 0 y como máximo 10 000 por hora
+`{}` must be a whole number from 0 to {}	`{}` debe ser un número entero de 0 a {}
+`{}` must be a weekday such as monday	`{}` debe ser un día de la semana como monday
+`{}` must be a three-letter ISO code such as USD	`{}` debe ser un código ISO de tres letras como USD
+`{}` must be a positive id	`{}` debe ser un identificador positivo
+`{}` must be a different company	`{}` debe ser otra empresa
+`{}` meeting {} not found in this project	`{}` reunión {} no encontrada en este proyecto
+`{}` meeting template {} not found in this project	`{}` plantilla de reunión {} no encontrada en este proyecto
+`{}` may hold only letters and digits	`{}` solo puede contener letras y dígitos
+`{}` makes the task longer than ten years	`{}` haría la tarea más larga de diez años
+`{}` lists more than {} submittals	`{}` enumera más de {} submittals
+`{}` lists more than {} resources	`{}` enumera más de {} recursos
+`{}` lists more than {} entries	`{}` enumera más de {} entradas
+`{}` lists more than {} documents	`{}` enumera más de {} documentos
+`{}` lists more than {} days off	`{}` enumera más de {} días libres
+`{}` lists more than {} companies	`{}` enumera más de {} empresas
+`{}` lists more than {} RFIs	`{}` enumera más de {} RFI
+`{}` lists more than 50 predecessors	`{}` enumera más de 50 predecesores
+`{}` lists more than 10 criteria	`{}` enumera más de 10 criterios
+`{}` is required for `{}`	`{}` es obligatorio para `{}`
+`{}` is required: included, excluded or unclear	`{}` es obligatorio: included, excluded o unclear
+`{}` is required: a number above zero (up to three decimals)	`{}` es obligatorio: un número mayor que cero (hasta tres decimales)
+`{}` is required when no template is used	`{}` es obligatorio cuando no se usa una plantilla
+`{}` is required on every markup	`{}` es obligatorio en cada anotación
+`{}` is required for an agenda item	`{}` es obligatorio para un punto de la agenda
+`{}` is required for a crew	`{}` es obligatorio para una cuadrilla
+`{}` is required (ft, in, m or mm)	`{}` es obligatorio (ft, in, m o mm)
+`{}` is not a weekday	`{}` no es un día de la semana
+`{}` is needed with a constraint date (this task has none)	`{}` se necesita con una fecha de restricción (esta tarea no tiene)
+`{}` is more than ten years after the start	`{}` es más de diez años posterior al inicio
+`{}` is in the assembly twice; give it one line	`{}` está dos veces en el conjunto; dele una sola línea
+`{}` is below the {} of the bid this package requires ({})	`{}` está por debajo del {} de la oferta que exige este paquete ({})
+`{}` is before the start	`{}` es anterior al inicio
+`{}` is answered twice	`{}` está respondido dos veces
+`{}` is already used by another view	`{}` ya lo usa otra vista
+`{}` is already used by another type	`{}` ya lo usa otro tipo
+`{}` is already used by another questionnaire	`{}` ya lo usa otro cuestionario
+`{}` is already used by another assembly	`{}` ya lo usa otro conjunto
+`{}` is already the name of a holiday list	`{}` ya es el nombre de una lista de feriados
+`{}` is already the name of a crew	`{}` ya es el nombre de una cuadrilla
+`{}` is already past	`{}` ya pasó
+`{}` is already one of your reports	`{}` ya es uno de sus informes
+`{}` is already in the catalogue	`{}` ya está en el catálogo
+`{}` is already a type of this project	`{}` ya es un tipo de este proyecto
+`{}` holiday list {} not found	`{}` lista de feriados {} no encontrada
+`{}` holds more than {} questions	`{}` contiene más de {} preguntas
+`{}` holds more than {} markups	`{}` contiene más de {} anotaciones
+`{}` holds more than 1,000 lines	`{}` contiene más de 1000 líneas
+`{}` has no cost code this project uses; choose one	`{}` no tiene un código de costo que use este proyecto; elija uno
+`{}` has more than {} tasks	`{}` tiene más de {} tareas
+`{}` has more than {} sheets	`{}` tiene más de {} hojas
+`{}` has more than {} sections or {} questions in one	`{}` tiene más de {} secciones o {} preguntas en una
+`{}` has more than {} points	`{}` tiene más de {} puntos
+`{}` has more than {} items	`{}` tiene más de {} elementos
+`{}` has more than 5,000 lines	`{}` tiene más de 5000 líneas
+`{}` has more than 20,000 lines	`{}` tiene más de 20 000 líneas
+`{}` has more than 20,000 codes	`{}` tiene más de 20 000 códigos
+`{}` give shift (to move the task) or finish_shift (to change its length), not both	`{}` indique shift (para mover la tarea) o finish_shift (para cambiar su duración), no ambos
+`{}` folders can be at most {} levels deep	`{}` las carpetas pueden tener como máximo {} niveles
+`{}` estimate template {} not found	`{}` plantilla de estimación {} no encontrada
+`{}` document {} not found in this project	`{}` documento {} no encontrado en este proyecto
+`{}` crew {} not found in this project	`{}` cuadrilla {} no encontrada en este proyecto
+`{}` cost_code, amount and description are required	`{}` cost_code, amount y description son obligatorios
+`{}` cost code {} not found	`{}` código de costo {} no encontrado
+`{}` cost code {} exists on this project	`{}` el código de costo {} ya existe en este proyecto
+`{}` choose one of the project's types: {}	`{}` elija uno de los tipos del proyecto: {}
+`{}` choose at least one person or group to tell	`{}` elija al menos una persona o grupo a quien avisar
+`{}` catalogue item {} not found	`{}` artículo {} del catálogo no encontrado
+`{}` can't be one of the task's own children	`{}` no puede ser una de las subtareas de la propia tarea
+`{}` can't be in the future; record a price on the day it applies	`{}` no puede estar en el futuro; registre un precio el día en que se aplique
+`{}` can't be before the day the contract was sent	`{}` no puede ser anterior al día en que se envió el contrato
+`{}` can't be before the day it was sent	`{}` no puede ser anterior al día en que se envió
+`{}` can only be run by an administrator from the command line	`{}` solo puede ejecutarlo un administrador desde la línea de comandos
+`{}` can hold at most 50 categories	`{}` admite como máximo 50 categorías
+`{}` answer yes or no	`{}` responda sí o no
+`{}` already has 50 predecessors	`{}` ya tiene 50 predecesores
+`{}` a task can't be its own parent	`{}` una tarea no puede ser su propio elemento superior
+`{}` a row is not part of the contract (is its change order approved?)	`{}` una fila no forma parte del contrato (¿está aprobada su orden de cambio?)
+`{}` a report goes to at most {} people	`{}` un informe va como máximo a {} personas
+`{}` a project can take at most 10 holiday lists	`{}` un proyecto admite como máximo 10 listas de feriados
+`{}` a milestone has no length; move it instead	`{}` un hito no tiene duración; muévalo en su lugar
+`{}` a folder can't be moved into itself or into a folder inside it	`{}` una carpeta no puede moverse dentro de sí misma ni de una carpeta que contiene
+`{}` a contract can have at most {} signers	`{}` un contrato puede tener como máximo {} firmantes
+`{}` a company admin must be able to sign in (set is_user)	`{}` un administrador de la empresa debe poder iniciar sesión (active is_user)
+`{}` `{}`: the number is too large	`{}` `{}`: el número es demasiado grande
+`{}` `{}`: start each line with a date as YYYY-MM-DD	`{}` `{}`: empiece cada línea con una fecha como AAAA-MM-DD
+`{}` `{}`: a range runs from an earlier weekday to a later one (Monday first)	`{}` `{}`: un rango va de un día de la semana anterior a uno posterior (lunes primero)
+`{}` `{}`: a name and a number from 1 to {}	`{}` `{}`: un nombre y un número de 1 a {}
+`{}` `{}` needs the answer that shows it	`{}` `{}` necesita la respuesta que lo muestra
+`{}` `{}` needs at least two choices	`{}` `{}` necesita al menos dos opciones
+`{}` `{}` is not rfi, observation or punch	`{}` `{}` no es rfi, observation ni punch
+`{}` `{}` is not one of: {}	`{}` `{}` no es uno de: {}
+`{}` `{}` is not one of the choices of `{}`	`{}` `{}` no es una de las opciones de `{}`
+`{}` `{}` is not approved or all	`{}` `{}` no es approved ni all
+`{}` `{}` is not an id	`{}` `{}` no es un identificador
+`{}` `{}` is not a whole number	`{}` `{}` no es un número entero
+`{}` `{}` is not a weekday	`{}` `{}` no es un día de la semana
+`{}` `{}` is not a valid email address	`{}` `{}` no es una dirección de correo electrónico válida
+`{}` `{}` is not a row key such as c.0 or p.12.0	`{}` `{}` no es una clave de fila como c.0 o p.12.0
+`{}` `{}` is not a report column	`{}` `{}` no es una columna de informe
+`{}` `{}` is not a quantity (up to three decimals)	`{}` `{}` no es una cantidad (hasta tres decimales)
+`{}` `{}` is not a point written x,y with each from 0 to {}	`{}` `{}` no es un punto escrito x,y con cada valor de 0 a {}
+`{}` `{}` is not a number of hours (above 0 to 24, one decimal)	`{}` `{}` no es un número de horas (mayor que 0 hasta 24, un decimal)
+`{}` `{}` is not a number of hours	`{}` `{}` no es un número de horas
+`{}` `{}` is not a date (YYYY-MM-DD)	`{}` `{}` no es una fecha (AAAA-MM-DD)
+`{}` `{}` is not a criterion number	`{}` `{}` no es un número de criterio
+`{}` `{}` is not a budget column	`{}` `{}` no es una columna de presupuesto
+`{}` `{}` has more than {} choices	`{}` `{}` tiene más de {} opciones
+`{}` `{}` can depend only on a question above it	`{}` `{}` solo puede depender de una pregunta anterior
+`{}` RFI {} not found in this project	`{}` RFI {} no encontrada en este proyecto

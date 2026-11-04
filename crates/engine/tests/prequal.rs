@@ -1,0 +1,429 @@
+//! Prequalification: records, review, expiry standing.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
+
+use buildkiosk_core::Date;
+use buildkiosk_model::prequal::Standing;
+use buildkiosk_testkit::World;
+use serde_json::json;
+
+#[test]
+fn save_review_and_lapse() {
+    let mut w = World::new();
+    let p = w.project("Riverside Clinic");
+    let pm = w.member(p, "Paula", "Manager", "Project manager");
+    let admin = w.admin();
+    let v = w.ok(admin, "vendor.create", json!({"name": "Keystone Concrete", "kind": "subcontractor"}))["id"].as_u64().unwrap();
+
+    w.ok(admin, "prequal.save", json!({"vendor": v, "insurance_expires": "2027-03-01", "license_expires": "2027-06-30", "emr": "0.85", "bonding_capacity": "2,500,000", "notes": "Good references"}));
+    w.ok(admin, "prequal.save", json!({"vendor": v, "notes": "Good references; visited the shop"}));
+    assert_eq!(w.engine.state().prequalifications.iter().count(), 1, "one live record per company");
+    let r = w.engine.state().prequalifications.iter().next().unwrap().clone();
+    assert_eq!((r.emr_hundredths, r.notes.as_str()), (Some(85), "Good references; visited the shop"));
+    for bad in ["abc", "10.5", "0.855", "-1"] {
+        w.err(admin, "prequal.save", json!({"vendor": v, "emr": bad}));
+    }
+    w.err(admin, "prequal.save", json!({"vendor": 9999}));
+    w.ok(admin, "prequal.save", json!({"vendor": v, "emr": ""}));
+
+    w.err(admin, "prequal.review", json!({"vendor": v, "decision": "maybe"}));
+    w.ok(admin, "prequal.submit", json!({"vendor": v}));
+    w.err(admin, "prequal.submit", json!({"vendor": v}));
+    w.err(admin, "prequal.review", json!({"vendor": v, "decision": "approved", "valid_until": "2020-01-01"}));
+    w.ok(admin, "prequal.review", json!({"vendor": v, "decision": "approved", "score": 88, "valid_until": "2027-10-01"}));
+    let r = w.engine.state().prequalifications.iter().next().unwrap().clone();
+    assert_eq!(r.score, Some(88));
+    let d = |s: &str| Date::parse(s).unwrap();
+    assert_eq!(r.standing(d("2026-10-13")), Standing::Current);
+    assert_eq!(r.standing(d("2027-01-15")), Standing::ExpiringSoon, "insurance lapses within 60 days");
+    assert_eq!(r.standing(d("2027-03-02")), Standing::Lapsed);
+    w.err(admin, "prequal.review", json!({"vendor": v, "decision": "approved", "score": 101}));
+
+    assert_eq!(w.ok(admin, "prequal.list", json!({"status": "approved", "q": "keystone"})).as_array().unwrap().len(), 1);
+    assert_eq!(w.ok(admin, "prequal.get", json!({"vendor": v}))["company"], "Keystone Concrete");
+
+    // People who are not company staff with prequalification access can't see it.
+    w.err(pm, "prequal.list", json!({}));
+    w.err(pm, "prequal.save", json!({"vendor": v}));
+    w.ok(admin, "prequal.reset", json!({"vendor": v}));
+    w.ok(admin, "prequal.delete", json!({"vendor": v}));
+    w.err(admin, "prequal.get", json!({"vendor": v}));
+    w.assert_replay();
+}
+
+const SHA: &str = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+fn vendor(w: &mut World, name: &str) -> u64 {
+    let admin = w.admin();
+    w.ok(admin, "vendor.create", json!({"name": name, "kind": "subcontractor"}))["id"].as_u64().unwrap()
+}
+
+#[test]
+fn questionnaires_are_answered_and_scored() {
+    let mut w = World::new();
+    let p = w.project("Riverside Clinic");
+    let pm = w.member(p, "Paula", "Manager", "Project manager");
+    let admin = w.admin();
+    let v = vendor(&mut w, "Keystone Concrete");
+    let form_text = "# Safety\nDo you have a written safety program? | 20\nWhat is your EMR? | 10\n# Financial\nLatest audited statements on file | 30\nBonding capacity\n";
+    w.err(pm, "prequal.form_save", json!({"name": "Subcontractors", "text": form_text}));
+    w.err(admin, "prequal.form_save", json!({"name": "x", "text": "no section first | 5"}));
+    w.err(admin, "prequal.form_save", json!({"name": "x", "text": "# Empty section"}));
+    w.err(admin, "prequal.form_save", json!({"name": "x", "text": "# S\nQ | 0"}));
+    w.err(admin, "prequal.form_save", json!({"name": "x", "text": "# S\nQ | lots"}));
+    w.err(admin, "prequal.form_save", json!({"name": "x"}));
+    let f = w.ok(admin, "prequal.form_save", json!({"name": "Subcontractors", "text": form_text}))["id"].as_u64().unwrap();
+    w.err(admin, "prequal.form_save", json!({"name": "subcontractors", "text": form_text}));
+    let forms = w.ok(admin, "prequal.forms", json!({}));
+    assert_eq!(forms[0]["sections"].as_array().unwrap().len(), 2);
+    assert_eq!(w.engine.state().prequal_forms.iter().next().unwrap().possible(), 70);
+    // Sections can also come as data.
+    let g = w.ok(
+        admin,
+        "prequal.form_save",
+        json!({"name": "Suppliers", "sections": [{"title": "Delivery", "questions": [{"text": "Lead times", "points": 5}]}]}),
+    )["id"]
+        .as_u64()
+        .unwrap();
+
+    // The company has to have a record first; its answers are written by the team.
+    w.err(admin, "prequal.answer", json!({"vendor": v, "form": f, "replies": []}));
+    w.ok(admin, "prequal.save", json!({"vendor": v}));
+    w.err(admin, "prequal.answer", json!({"vendor": v, "replies": [{"section": 0, "question": 0, "text": "x"}]}));
+    w.err(admin, "prequal.answer", json!({"vendor": v, "form": f, "replies": [{"section": 5, "question": 0, "text": "x"}]}));
+    w.err(admin, "prequal.answer", json!({"vendor": v, "form": 999}));
+    w.ok(admin, "prequal.answer", json!({"vendor": v, "form": f, "replies": [{"section": 0, "question": 0, "text": "Yes, reviewed yearly"}, {"section": 0, "question": 1, "text": "0.85"}, {"section": 1, "question": 0, "text": "FY25 attached"}]}));
+    let rec = |w: &World| w.engine.state().prequalifications.iter().next().unwrap().clone();
+    assert_eq!((rec(&w).answers.len(), rec(&w).form.map(|x| x.raw())), (3, Some(f)));
+
+    // Only an admin scores; points can't exceed the question's worth; the score is the share earned.
+    w.err(pm, "prequal.grade", json!({"vendor": v, "points": []}));
+    w.err(admin, "prequal.grade", json!({"vendor": v, "points": [{"section": 0, "question": 0, "points": 21}]}));
+    w.err(admin, "prequal.grade", json!({"vendor": v, "points": [{"section": 0, "question": 0, "points": "lots"}]}));
+    let r = w.ok(admin, "prequal.grade", json!({"vendor": v, "points": [{"section": 0, "question": 0, "points": 20}, {"section": 0, "question": 1, "points": 5}, {"section": 1, "question": 0, "points": 15}]}));
+    assert_eq!((r["earned"].as_u64(), r["possible"].as_u64(), r["score"].as_u64()), (Some(40), Some(70), Some(57)));
+    assert_eq!(rec(&w).score, Some(57));
+    let form = w.engine.state().prequal_forms.get(buildkiosk_core::Id::new(f)).unwrap().clone();
+    assert_eq!((rec(&w).points(&form, Some(0)), rec(&w).points(&form, Some(1))), ((25, 30), (15, 40)));
+    // A question graded but never answered still counts; clearing points lowers the score.
+    w.ok(
+        admin,
+        "prequal.grade",
+        json!({"vendor": v, "points": [{"section": 1, "question": 1, "points": 10}, {"section": 0, "question": 1, "points": ""}]}),
+    );
+    assert_eq!(rec(&w).score, Some(64), "20 + 15 + 10 = 45 of 70");
+    // Switching questionnaire starts over; a questionnaire in use can't be deleted.
+    w.err(admin, "prequal.form_delete", json!({"id": f}));
+    w.ok(admin, "prequal.answer", json!({"vendor": v, "form": g}));
+    assert!(rec(&w).answers.is_empty());
+    w.ok(admin, "prequal.form_delete", json!({"id": f}));
+    w.err(admin, "prequal.form_delete", json!({"id": f}));
+    w.assert_replay();
+}
+
+#[test]
+fn certificates_attach_to_the_record() {
+    let mut w = World::new();
+    let admin = w.admin();
+    let v = vendor(&mut w, "Keystone Concrete");
+    w.err(admin, "prequal.attach", json!({"vendor": v, "sha256": SHA, "name": "coi.pdf", "size": 10}));
+    w.ok(admin, "prequal.save", json!({"vendor": v}));
+    w.err(admin, "prequal.attach", json!({"vendor": v, "sha256": "short", "name": "coi.pdf", "size": 10}));
+    w.ok(admin, "prequal.attach", json!({"vendor": v, "sha256": SHA, "name": "coi.pdf", "size": 10, "mime": "application/pdf"}));
+    w.ok(admin, "prequal.attach", json!({"vendor": v, "sha256": SHA, "name": "coi.pdf", "size": 10}));
+    assert_eq!(w.engine.state().prequalifications.iter().next().unwrap().attachments.len(), 1, "the same file is kept once");
+    w.err(admin, "prequal.detach", json!({"vendor": v, "sha256": "d".repeat(64)}));
+    w.ok(admin, "prequal.detach", json!({"vendor": v, "sha256": SHA}));
+    assert!(w.engine.state().prequalifications.iter().next().unwrap().attachments.is_empty());
+    w.assert_replay();
+}
+
+#[test]
+fn the_admins_are_warned_before_things_lapse_and_only_once() {
+    let mut w = World::new();
+    let admin = w.admin();
+    let me = w.ok(admin, "me.get", json!({}))["person"]["id"].as_u64().unwrap();
+    let me = buildkiosk_core::Id::<buildkiosk_model::directory::Person>::new(me);
+    let unread = |w: &mut World| w.ok(me, "notification.list", json!({"unread": true})).as_array().unwrap().len();
+    let v = vendor(&mut w, "Keystone Concrete");
+    // Today is 12 October 2026: approval in 50 days, insurance in 7, licence lapsed, the next far away.
+    w.ok(
+        admin,
+        "prequal.save",
+        json!({"vendor": v, "valid_until": "2026-12-01", "insurance_expires": "2026-10-19", "license_expires": "2026-10-01"}),
+    );
+    w.ok(admin, "prequal.review", json!({"vendor": v, "decision": "approved", "valid_until": "2026-12-01"}));
+    let far = vendor(&mut w, "Far Away Steel");
+    w.ok(admin, "prequal.save", json!({"vendor": far, "valid_until": "2028-01-01", "insurance_expires": "2028-01-01"}));
+    w.ok(admin, "prequal.review", json!({"vendor": far, "decision": "approved", "valid_until": "2028-01-01"}));
+    let pending = vendor(&mut w, "Not Approved Yet");
+    w.ok(admin, "prequal.save", json!({"vendor": pending, "insurance_expires": "2026-10-13"}));
+    let before = unread(&mut w);
+
+    w.err(me, "prequal.remind", json!({}));
+    let r = w.ok(buildkiosk_engine::Actor::System, "prequal.remind", json!({}));
+    assert_eq!(r["reminded"], 3, "approval, insurance and licence of the one company; not the approved-later or unapproved ones");
+    assert_eq!(unread(&mut w), before + 3);
+    assert_eq!(w.ok(buildkiosk_engine::Actor::System, "prequal.remind", json!({}))["reminded"], 0, "nothing is repeated");
+    // Time passes: the approval comes within 30 days, then the insurance lapses.
+    w.advance_days(25);
+    assert_eq!(w.ok(buildkiosk_engine::Actor::System, "prequal.remind", json!({}))["reminded"], 2, "approval at 30 days, insurance lapsed");
+    assert_eq!(w.ok(buildkiosk_engine::Actor::System, "prequal.remind", json!({}))["reminded"], 0);
+    // A renewed date starts afresh.
+    w.ok(admin, "prequal.save", json!({"vendor": v, "insurance_expires": "2026-12-20"}));
+    assert_eq!(w.ok(buildkiosk_engine::Actor::System, "prequal.remind", json!({}))["reminded"], 1, "the new insurance date is within 60 days");
+    let text = w.ok(me, "notification.list", json!({"unread": true}))[0]["text"].as_str().unwrap().to_string();
+    assert!(text.contains("Keystone Concrete") || text.contains("insurance") || text.contains("approval") || text.contains("license"), "{text}");
+    w.assert_replay();
+}
+
+#[test]
+fn a_company_can_require_prequalification_for_commitments_and_awards() {
+    let mut w = World::new();
+    let p = w.project("Riverside Clinic");
+    let pm = w.member(p, "Paula", "Manager", "Project manager");
+    let admin = w.admin();
+    let ok = vendor(&mut w, "Approved Concrete");
+    let lapsed = vendor(&mut w, "Lapsed Steel");
+    let unknown = vendor(&mut w, "Unknown Roofing");
+    w.ok(admin, "prequal.save", json!({"vendor": ok, "insurance_expires": "2027-12-01"}));
+    w.ok(admin, "prequal.review", json!({"vendor": ok, "decision": "approved", "valid_until": "2027-12-01"}));
+    w.ok(admin, "prequal.save", json!({"vendor": lapsed, "insurance_expires": "2026-10-20"}));
+    w.ok(admin, "prequal.review", json!({"vendor": lapsed, "decision": "approved", "valid_until": "2027-12-01"}));
+    let code = w.engine.state().cost_codes.iter().find(|c| c.code == "03-300").unwrap().id.raw();
+    let commit = |w: &mut World, v: u64| -> u64 {
+        w.ok(pm, "commitment.create", json!({"project": p, "title": "Work", "vendor": v, "lines": [{"cost_code": code, "amount": "1000"}]}))["id"]
+            .as_u64()
+            .unwrap()
+    };
+    let (a, b, c) = (commit(&mut w, ok), commit(&mut w, lapsed), commit(&mut w, unknown));
+    // Off by default: anyone can be committed to.
+    w.ok(pm, "commitment.approve", json!({"project": p, "id": c}));
+    w.err(pm, "prequal.require", json!({"required": true}));
+    w.ok(admin, "prequal.require", json!({"required": true}));
+    let d = commit(&mut w, unknown);
+    assert!(w.err(pm, "commitment.approve", json!({"project": p, "id": d})).to_string().contains("not prequalified"));
+    w.ok(pm, "commitment.approve", json!({"project": p, "id": a}));
+    // A lapse is refused once it has happened.
+    w.ok(pm, "commitment.approve", json!({"project": p, "id": b}));
+    let e = commit(&mut w, lapsed);
+    w.advance_days(10);
+    assert!(w.err(pm, "commitment.approve", json!({"project": p, "id": e})).to_string().contains("lapsed"));
+    // Bids can't be awarded to an unprequalified company either.
+    let pkg =
+        w.ok(pm, "bid_package.create", json!({"project": p, "title": "Roofing", "cost_code": code, "invite": [unknown, ok]}))["id"].as_u64().unwrap();
+    // Nor can a bid link go to one.
+    w.err(pm, "bid_package.invite", json!({"project": p, "id": pkg, "vendor": unknown, "email": "bids@example.com"}));
+    w.ok(pm, "bid_package.invite", json!({"project": p, "id": pkg, "vendor": ok, "email": "bids@example.com"}));
+    w.ok(pm, "bid_package.open", json!({"project": p, "id": pkg}));
+    w.ok(pm, "bid_package.record_bid", json!({"project": p, "id": pkg, "vendor": unknown, "amount": "900"}));
+    w.ok(pm, "bid_package.record_bid", json!({"project": p, "id": pkg, "vendor": ok, "amount": "950"}));
+    w.err(pm, "bid_package.award", json!({"project": p, "id": pkg, "vendor": unknown}));
+    w.ok(pm, "bid_package.award", json!({"project": p, "id": pkg, "vendor": ok}));
+    w.ok(admin, "prequal.require", json!({"required": false}));
+    w.assert_replay();
+}
+
+#[test]
+fn changing_an_answered_questionnaire_makes_a_new_version() {
+    let mut w = World::new();
+    let admin = w.admin();
+    let (a, b) = (vendor(&mut w, "Keystone Concrete"), vendor(&mut w, "Northline Steel"));
+    let f = w.ok(admin, "prequal.form_save", json!({"name": "Subs", "text": "# Safety\nWritten program? | 20\nEMR? | 10\n"}))["id"].as_u64().unwrap();
+    // Nobody has answered yet, so a change is made in place.
+    let same = w.ok(admin, "prequal.form_save", json!({"id": f, "name": "Subs", "text": "# Safety\nWritten safety program? | 20\nEMR? | 10\n"}));
+    assert_eq!((same["id"].as_u64(), same["new_version"].as_bool()), (Some(f), None));
+    w.ok(admin, "prequal.save", json!({"vendor": a}));
+    w.ok(admin, "prequal.save", json!({"vendor": b}));
+    w.ok(
+        admin,
+        "prequal.answer",
+        json!({"vendor": a, "form": f, "replies": [{"section": 0, "question": 0, "text": "Yes"}, {"section": 0, "question": 1, "text": "0.85"}]}),
+    );
+    w.ok(admin, "prequal.answer", json!({"vendor": b, "form": f}));
+    w.ok(
+        admin,
+        "prequal.grade",
+        json!({"vendor": a, "points": [{"section": 0, "question": 0, "points": 20}, {"section": 0, "question": 1, "points": 10}]}),
+    );
+
+    // Now the first question is reworded and the second is worth more: a new version.
+    let v2 = w.ok(
+        admin,
+        "prequal.form_save",
+        json!({"id": f, "name": "Subs", "text": "# Safety\nWritten safety program and training? | 20\nEMR? | 15\n"}),
+    );
+    let new = v2["id"].as_u64().unwrap();
+    assert_ne!(new, f);
+    assert_eq!((v2["version"].as_u64(), v2["new_version"].as_bool()), (Some(2), Some(true)));
+    let rec = |w: &World, v: u64| w.engine.state().prequalifications.iter().find(|r| r.vendor.raw() == v).unwrap().clone();
+    // The company that answered stays on version 1; the one that hadn't moves up.
+    assert_eq!((rec(&w, a).form.map(|x| x.raw()), rec(&w, a).answers.len()), (Some(f), 2));
+    assert_eq!(rec(&w, b).form.map(|x| x.raw()), Some(new));
+    // Only the current version is listed or editable.
+    assert_eq!(w.ok(admin, "prequal.forms", json!({})).as_array().unwrap().len(), 1);
+    w.err(admin, "prequal.form_save", json!({"id": f, "name": "Subs", "text": "# S\nQ | 5"}));
+    w.err(admin, "prequal.form_delete", json!({"id": f}));
+    // Moving up keeps the unchanged question's answer, and its points only while it is worth the same.
+    w.ok(admin, "prequal.answer", json!({"vendor": a, "form": new}));
+    let r = rec(&w, a);
+    assert_eq!(r.form.map(|x| x.raw()), Some(new));
+    assert_eq!(r.answers.len(), 1);
+    assert_eq!((r.answers[0].question, r.answers[0].text.as_str(), r.answers[0].points), (1, "0.85", None));
+    w.assert_replay();
+}
+
+#[test]
+fn companies_fill_in_their_own_prequalification_through_a_link() {
+    use buildkiosk_engine::Actor;
+    let mut w = World::new();
+    let p = w.project("Riverside Clinic");
+    let pm = w.member(p, "Paula", "Manager", "Project manager");
+    let admin = w.admin();
+    let v = vendor(&mut w, "Keystone Concrete");
+    let other = vendor(&mut w, "Other Steel");
+    let form_text = "# Safety\nDo you have a written safety program? | 20\nWhat is your EMR? | 10\n# Financial\nBonding capacity | 30\n";
+    let f = w.ok(admin, "prequal.form_save", json!({"name": "Subcontractors", "text": form_text}))["id"].as_u64().unwrap();
+    w.ok(admin, "prequal.save", json!({"vendor": v, "notes": "Team note, not for the company", "valid_until": "2027-10-01"}));
+    w.ok(admin, "prequal.answer", json!({"vendor": v, "form": f, "replies": []}));
+    let link = |generation: u32, extra: serde_json::Value| {
+        let mut m = extra.as_object().cloned().unwrap_or_default();
+        m.insert("vendor".into(), json!(v));
+        m.insert("invitation".into(), json!(1));
+        m.insert("generation".into(), json!(generation));
+        serde_json::Value::Object(m)
+    };
+
+    // The team sends a link; people without Prequalification access can't, and a bad address or past day is refused.
+    w.err(pm, "prequal.invite", json!({"vendor": v, "email": "office@keystone.example"}));
+    w.err(admin, "prequal.invite", json!({"vendor": v, "email": "not an address"}));
+    w.err(admin, "prequal.invite", json!({"vendor": v, "email": "office@keystone.example", "expires": "2020-01-01"}));
+    w.err(admin, "prequal.invite", json!({"vendor": 9999, "email": "office@keystone.example"}));
+    assert_eq!(w.ok(admin, "prequal.invite", json!({"vendor": v, "email": "office@keystone.example", "expires": "2030-01-01"}))["number"], 1);
+    w.err(admin, "prequal.invite", json!({"vendor": v, "email": "office@keystone.example"}));
+    // Until the server has seen to it, the link is unsent; only the system records that, and a person cannot use the portal commands.
+    assert!(w.ok(admin, "prequal.invitations", json!({"vendor": v}))[0]["sent"].is_null());
+    w.err(admin, "prequal.portal_view", link(0, json!({})));
+    w.err(pm, "prequal.invite_sent", json!({"vendor": v, "number": 1, "generation": 0}));
+    w.ok(Actor::System, "prequal.invite_sent", json!({"vendor": v, "number": 1, "generation": 0}));
+    assert!(!w.ok(admin, "prequal.invitations", json!({"vendor": v}))[0]["sent"].is_null());
+
+    // What the company sees: its questionnaire and its own figures, never the team's notes or score.
+    let view = w.ok(Actor::System, "prequal.portal_view", link(0, json!({})));
+    assert_eq!(
+        (view["company"].clone(), view["status"].clone(), view["editable"].clone()),
+        (json!("Keystone Concrete"), json!("pending"), json!(true))
+    );
+    assert_eq!(view["sections"].as_array().unwrap().len(), 2);
+    let text = view.to_string();
+    assert!(!text.contains("Team note") && !text.contains("score"), "{text}");
+    assert!(view["valid_until"].is_null(), "an approval date only shows once approved");
+    // A wrong generation, number, company or a cancelled or expired link is the same answer.
+    for bad in
+        [link(1, json!({})), json!({"vendor": other, "invitation": 1, "generation": 0}), json!({"vendor": v, "invitation": 2, "generation": 0})]
+    {
+        assert_eq!(w.err(Actor::System, "prequal.portal_view", bad).to_string(), "this link is not valid");
+    }
+
+    // Saving answers and figures; bad ones are refused; nothing is submitted yet.
+    w.err(Actor::System, "prequal.portal_save", link(0, json!({"replies": [{"section": 9, "question": 0, "text": "x"}]})));
+    w.err(Actor::System, "prequal.portal_save", link(0, json!({"emr": "lots"})));
+    w.err(Actor::System, "prequal.portal_save", link(0, json!({"bonding_capacity": "-5"})));
+    w.ok(
+        Actor::System,
+        "prequal.portal_save",
+        link(0, json!({"replies": [{"section": 0, "question": 0, "text": "Yes, reviewed yearly"}], "insurance_expires": "2027-03-01", "emr": "0.9", "bonding_capacity": "2,000,000"})),
+    );
+    w.err(Actor::System, "prequal.portal_submit", link(0, json!({})));
+    w.ok(
+        Actor::System,
+        "prequal.portal_save",
+        link(0, json!({"replies": [{"section": 0, "question": 1, "text": "0.90"}, {"section": 1, "question": 0, "text": "$2M"}]})),
+    );
+    let r = w.engine.state().prequalifications.iter().next().unwrap().clone();
+    assert_eq!((r.emr_hundredths, r.insurance_expires.map(|d| d.to_string())), (Some(90), Some("2027-03-01".to_string())));
+    assert_eq!(r.valid_until.map(|d| d.to_string()).as_deref(), Some("2027-10-01"), "the approval date is the team's");
+
+    // Files: the company attaches its own and can remove only those.
+    w.ok(Actor::System, "prequal.portal_attach", link(0, json!({"sha256": SHA, "name": "insurance.pdf", "size": 100, "mime": "application/pdf"})));
+    w.err(Actor::System, "prequal.portal_attach", link(0, json!({"sha256": "nope", "name": "x", "size": 1})));
+    w.ok(
+        admin,
+        "prequal.attach",
+        json!({"vendor": v, "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "name": "team.pdf", "size": 5}),
+    );
+    w.err(Actor::System, "prequal.portal_detach", link(0, json!({"sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"})));
+    w.ok(Actor::System, "prequal.portal_detach", link(0, json!({"sha256": SHA})));
+    w.ok(Actor::System, "prequal.portal_attach", link(0, json!({"sha256": SHA, "name": "insurance.pdf", "size": 100})));
+
+    // Putting the record forward tells the admins and locks the answers; the company may still leave a message.
+    let before = w.engine.state().notifications.iter().count();
+    w.ok(Actor::System, "prequal.portal_submit", link(0, json!({"message": "Insurance certificate attached"})));
+    assert!(w.engine.state().notifications.iter().count() > before);
+    assert_eq!(w.engine.state().prequalifications.iter().next().unwrap().status.to_string(), "Submitted");
+    assert_eq!(w.ok(admin, "prequal.get", json!({"vendor": v}))["submitted_via"], 1);
+    w.err(Actor::System, "prequal.portal_save", link(0, json!({"emr": "0.5"})));
+    w.err(Actor::System, "prequal.portal_submit", link(0, json!({})));
+    w.err(Actor::System, "prequal.portal_detach", link(0, json!({"sha256": SHA})));
+    w.ok(Actor::System, "prequal.portal_message", link(0, json!({"message": "Sent the bond letter by post"})));
+    w.err(Actor::System, "prequal.portal_message", link(0, json!({"message": ""})));
+    assert_eq!(w.ok(Actor::System, "prequal.portal_view", link(0, json!({})))["editable"], false);
+
+    // A rejected record can be corrected and put forward again; approval then hides the figures from change.
+    w.ok(admin, "prequal.review", json!({"vendor": v, "decision": "rejected", "notes": "Need a bonding letter"}));
+    assert_eq!(w.ok(Actor::System, "prequal.portal_view", link(0, json!({})))["editable"], true);
+    w.ok(Actor::System, "prequal.portal_submit", link(0, json!({})));
+    w.ok(admin, "prequal.review", json!({"vendor": v, "decision": "approved", "score": 80, "valid_until": "2027-10-01"}));
+    assert_eq!(w.ok(Actor::System, "prequal.portal_view", link(0, json!({})))["valid_until"], "2027-10-01");
+    w.err(Actor::System, "prequal.portal_save", link(0, json!({"insurance_expires": "2040-01-01"})));
+    w.ok(
+        Actor::System,
+        "prequal.portal_attach",
+        link(0, json!({"sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "name": "renewal.pdf", "size": 9})),
+    );
+
+    // Sending the link again makes the first one stop working; cancelling stops the new one.
+    assert_eq!(w.ok(admin, "prequal.resend_invite", json!({"vendor": v, "number": 1}))["generation"], 1);
+    w.err(Actor::System, "prequal.portal_view", link(0, json!({})));
+    w.ok(Actor::System, "prequal.portal_view", link(1, json!({})));
+    w.err(Actor::System, "prequal.resend_invite", json!({"vendor": v, "number": 7}));
+    w.ok(admin, "prequal.revoke_invite", json!({"vendor": v, "number": 1}));
+    w.err(Actor::System, "prequal.portal_view", link(1, json!({})));
+    w.err(admin, "prequal.revoke_invite", json!({"vendor": v, "number": 1}));
+    w.err(admin, "prequal.resend_invite", json!({"vendor": v, "number": 1}));
+    w.assert_replay();
+}
+
+#[test]
+fn warnings_reach_the_company_through_its_link() {
+    use buildkiosk_engine::Actor;
+    let mut w = World::new();
+    let admin = w.admin();
+    let v = vendor(&mut w, "Keystone Concrete");
+    w.ok(admin, "prequal.save", json!({"vendor": v, "insurance_expires": "2026-11-20", "license_expires": "2028-01-01"}));
+    w.ok(admin, "prequal.submit", json!({"vendor": v}));
+    w.ok(admin, "prequal.review", json!({"vendor": v, "decision": "approved", "valid_until": "2028-01-01"}));
+    // Nothing is due while no link was emailed.
+    assert_eq!(w.ok(Actor::System, "prequal.company_due", json!({})), json!([]));
+    w.ok(admin, "prequal.invite", json!({"vendor": v, "email": "office@keystone.example"}));
+    assert_eq!(w.ok(Actor::System, "prequal.company_due", json!({})), json!([]), "a link that was not sent reaches no one");
+    w.ok(Actor::System, "prequal.invite_sent", json!({"vendor": v, "number": 1, "generation": 0}));
+    // The test clock is 2026-10-12: the insurance lapses within 60 days.
+    let due = w.ok(Actor::System, "prequal.company_due", json!({}));
+    assert_eq!(due.as_array().unwrap().len(), 1);
+    assert_eq!(
+        (due[0]["what"].clone(), due[0]["days"].clone(), due[0]["email"].clone()),
+        (json!("insurance"), json!(60), json!("office@keystone.example"))
+    );
+    assert_eq!((due[0]["number"].clone(), due[0]["generation"].clone()), (json!(1), json!(0)));
+    w.err(admin, "prequal.company_due", json!({}));
+    w.err(admin, "prequal.company_reminded", json!({"vendor": v, "what": "insurance", "date": "2026-11-20", "days": 60}));
+    w.err(Actor::System, "prequal.company_reminded", json!({"vendor": v, "what": "parking", "date": "2026-11-20", "days": 60}));
+    w.ok(Actor::System, "prequal.company_reminded", json!({"vendor": v, "what": "insurance", "date": "2026-11-20", "days": 60}));
+    assert_eq!(w.ok(Actor::System, "prequal.company_due", json!({})), json!([]), "each warning goes once");
+    // Closer to the date it is a new, stronger warning; a cancelled link reaches no one.
+    w.advance_days(20);
+    assert_eq!(w.ok(Actor::System, "prequal.company_due", json!({}))[0]["days"], 30);
+    w.ok(admin, "prequal.revoke_invite", json!({"vendor": v, "number": 1}));
+    assert_eq!(w.ok(Actor::System, "prequal.company_due", json!({})), json!([]));
+    w.assert_replay();
+}

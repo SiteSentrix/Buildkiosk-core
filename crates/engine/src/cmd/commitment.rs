@@ -1,0 +1,514 @@
+//! Commitments: subcontracts and purchase orders, each with a schedule of values by cost code.
+//!
+//! A commitment starts as a draft that its author edits; a commitments admin approves it, which
+//! makes its amounts count as committed cost in the budget. Approved commitments can be marked
+//! complete, and any commitment can be voided (its amounts stop counting).
+//!
+//! Who may do what (beyond the tool level checked before the command runs):
+//! - edit: the author while it's a draft, admins always (until void);
+//! - approve, complete, void, restore: commitments admins;
+//! - delete: admins, or the author of a draft.
+
+use buildkiosk_core::{Id, text};
+use buildkiosk_model::directory::Vendor;
+use buildkiosk_model::finance::{Commitment, CommitmentKind, CommitmentLine, CommitmentStatus, InvoiceStatus, SignatureStatus};
+use buildkiosk_model::project::{CostCode, Project};
+use buildkiosk_model::{Level, Tool};
+use serde_json::{Value, json};
+
+use super::budget::usable_code;
+use super::{Access, CommandSpec};
+use crate::ctx::{Read, in_project};
+use crate::view::{self, json};
+use crate::{Ctx, EngineError, Params, Result, View};
+
+pub const COMMANDS: &[CommandSpec] = &[
+    CommandSpec::mutate(
+        "commitment.create",
+        "Create commitment",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project: project id; title: text; kind?: subcontract|purchase_order; vendor?: company id; description?: text; retainage?: percent (such as 10, withheld on each invoice); \
+         lines?: [{cost_code: cost code id, description?: text, amount: amount}]",
+        create,
+    ),
+    CommandSpec::mutate(
+        "commitment.update",
+        "Edit commitment",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids; then any commitment.create field (a lines list replaces the old one)",
+        update,
+    ),
+    CommandSpec::mutate(
+        "commitment.approve",
+        "Approve commitment",
+        Tool::Commitments,
+        Access::Project(Level::Admin),
+        "project, id: ids (the commitment needs at least one line)",
+        approve,
+    ),
+    CommandSpec::mutate(
+        "commitment.send_for_signature",
+        "Send contract for signature",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids; to?: who the contract went to (a name or email); on?: date sent (default today); email?: also gives the other party a link to read the contract and sign it here, emailed by the server (a new link each time, the earlier one stops working); expires?: YYYY-MM-DD, the link's last day; others?: more people to sign through links of their own (email addresses, one a line; the contract is signed when all have); ordered?: bool (they sign in turn, each emailed when the one before has signed); countersign?: bool (the company signs too, with the countersign command, and the contract is signed when the others and the company have). The commitment needs a line and can't be complete or void",
+        send_for_signature,
+    ),
+    CommandSpec::mutate(
+        "commitment.record_signature",
+        "Record signed contract",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids; signer: who signed for the other party; on?: date signed (default today); note?: text. Attach the signed copy as a file",
+        record_signature,
+    ),
+    CommandSpec::mutate(
+        "commitment.decline_signature",
+        "Record declined contract",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids; note?: why it came back unsigned (only while it is out for signature)",
+        decline_signature,
+    ),
+    CommandSpec::mutate(
+        "commitment.reset_signature",
+        "Clear signature status",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids (back to not sent; clearing a signed contract takes a commitments admin)",
+        reset_signature,
+    ),
+    CommandSpec::mutate(
+        "commitment.require_signed",
+        "Require signed contracts",
+        Tool::Commitments,
+        Access::Project(Level::Admin),
+        "project: project id; required: bool (when on, a commitment can only be approved once its contract is recorded as signed)",
+        require_signed,
+    ),
+    CommandSpec::mutate("commitment.complete", "Complete commitment", Tool::Commitments, Access::Project(Level::Admin), "project, id: ids", complete),
+    CommandSpec::mutate("commitment.void", "Void commitment", Tool::Commitments, Access::Project(Level::Admin), "project, id: ids", void),
+    CommandSpec::mutate(
+        "commitment.attach",
+        "Attach file to commitment",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids; sha256: 64 hex digits; name: file name; size: bytes; mime?: media type (contract, insurance certificate, scope)",
+        attach,
+    ),
+    CommandSpec::mutate(
+        "commitment.detach",
+        "Remove file from commitment",
+        Tool::Commitments,
+        Access::Project(Level::Standard),
+        "project, id: ids; sha256: 64 hex digits",
+        detach,
+    ),
+    CommandSpec::mutate("commitment.delete", "Delete commitment", Tool::Commitments, Access::Project(Level::Standard), "project, id: ids", delete),
+    CommandSpec::mutate("commitment.restore", "Restore commitment", Tool::Commitments, Access::Project(Level::Admin), "project, id: ids", restore),
+    CommandSpec::query(
+        "commitment.list",
+        "List commitments",
+        Tool::Commitments,
+        Access::Project(Level::Read),
+        "project: project id; status?: draft|approved|complete|void; q?: text; deleted?: bool (recycle bin, admins)",
+        list,
+    ),
+    CommandSpec::query("commitment.get", "Show commitment", Tool::Commitments, Access::Project(Level::Read), "project, id: ids", get),
+];
+
+const MAX_LINES: usize = 200;
+
+fn load(ctx: &Ctx<'_>, p: &Params<'_>) -> Result<Commitment> {
+    let project: Id<Project> = p.id("project")?;
+    let id: Id<Commitment> = p.id("id")?;
+    let c = in_project(&ctx.state.commitments, project, id, "commitment")?;
+    if !view::can_see_commitment(ctx.state, ctx.actor, c) {
+        return Err(EngineError::not_found(format!("commitment {id} not found in this project")));
+    }
+    Ok(c.clone())
+}
+
+fn is_admin(ctx: &Ctx<'_>, project: Id<Project>) -> bool {
+    ctx.level(project, Tool::Commitments) == Level::Admin
+}
+
+/// Whether the actor may edit the commitment now.
+pub fn can_edit(state: &buildkiosk_model::CompanyState, actor: crate::Actor, c: &Commitment) -> bool {
+    let lvl = view::level(state, actor, c.project, Tool::Commitments);
+    if c.status == CommitmentStatus::Void {
+        return false;
+    }
+    lvl == Level::Admin
+        || (lvl >= Level::Standard && c.status == CommitmentStatus::Draft && actor.person().is_some() && c.created.by == actor.person())
+}
+
+fn read_lines(ctx: &Ctx<'_>, p: &Params<'_>, project: Id<Project>) -> Result<Vec<CommitmentLine>> {
+    let rows = p.items("lines")?;
+    if rows.len() > MAX_LINES {
+        return Err(p.bad("lines", format!("holds more than {MAX_LINES} lines")));
+    }
+    let mut out = Vec::new();
+    for row in rows {
+        // Rows left blank on a form are skipped.
+        let code: Option<Id<CostCode>> = row.opt_id("cost_code")?;
+        if code.is_none() && row.line_or_empty("amount", 40)?.is_empty() && row.line_or_empty("description", text::SHORT)?.is_empty() {
+            continue;
+        }
+        let code = code.ok_or_else(|| row.bad("cost_code", "is required"))?;
+        usable_code(ctx.state, project, code)?;
+        let amount = row.money("amount")?.ok_or_else(|| row.bad("amount", "is required"))?;
+        out.push(CommitmentLine { cost_code: code, description: row.line_or_empty("description", text::SHORT)?, amount });
+    }
+    Ok(out)
+}
+
+fn apply_fields(ctx: &Ctx<'_>, p: &Params<'_>, c: &mut Commitment, creating: bool) -> Result<()> {
+    // A contract signed or sent out no longer matches if its amounts, retainage or company change.
+    let signed_terms = (c.vendor, c.retainage, c.lines.clone());
+    if creating || p.present("title") {
+        c.title = p.req_line("title", text::SHORT)?;
+    }
+    if let Some(k) = p.choice::<CommitmentKind>("kind")? {
+        c.kind = k;
+    }
+    if p.present("vendor") {
+        let v = p.opt_id::<Vendor>("vendor")?;
+        if let Some(v) = v {
+            ctx.check_vendor(v)?;
+        }
+        c.vendor = v;
+    }
+    if p.present("description") {
+        c.description = p.text_or_empty("description", text::LONG)?;
+    }
+    if p.present("retainage") {
+        c.retainage = super::invoice::retainage(p)?;
+    }
+    if p.present("lines") {
+        if !creating && ctx.state.commitment_invoices.iter().any(|i| i.commitment == c.id && i.deleted.is_none() && i.status != InvoiceStatus::Void) {
+            return Err(EngineError::conflict("invoices exist for this commitment, so its lines can't change (use a change order)"));
+        }
+        c.lines = read_lines(ctx, p, c.project)?;
+        if c.total().is_none() {
+            return Err(p.bad("lines", "the amounts are too large to add up"));
+        }
+    }
+    if !creating
+        && (c.vendor, c.retainage, &c.lines) != (signed_terms.0, signed_terms.1, &signed_terms.2)
+        && c.signature.status != SignatureStatus::NotSent
+    {
+        c.signature = Default::default();
+    }
+    Ok(())
+}
+
+fn create(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let project: Id<Project> = p.id("project")?;
+    let number = ctx.state.commitments.iter().filter(|c| c.project == project).map(|c| c.number).max().unwrap_or(0).saturating_add(1);
+    let stamp = ctx.stamp();
+    let mut c = Commitment {
+        id: ctx.state.commitments.peek_next(),
+        project,
+        number,
+        title: String::new(),
+        kind: CommitmentKind::default(),
+        status: CommitmentStatus::Draft,
+        vendor: None,
+        description: String::new(),
+        lines: Vec::new(),
+        retainage: None,
+        approved: None,
+        attachments: Vec::new(),
+        signature: Default::default(),
+        created: stamp,
+        updated: stamp,
+        deleted: None,
+    };
+    apply_fields(ctx, p, &mut c, true)?;
+    let id = ctx.state.commitments.alloc();
+    c.id = id;
+    ctx.state.commitments.put(c);
+    Ok(json!({ "id": id, "number": number }))
+}
+
+fn update(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let mut c = load(ctx, p)?;
+    if !can_edit(ctx.state, ctx.actor, &c) {
+        return Err(EngineError::forbidden(match c.status {
+            CommitmentStatus::Void => format!("{} is void", c.label()),
+            _ => format!("only the author (while it is a draft) or a commitments admin can edit {}", c.label()),
+        }));
+    }
+    let before = c.clone();
+    apply_fields(ctx, p, &mut c, false)?;
+    let id = c.id;
+    if c != before {
+        c.updated = ctx.stamp();
+        ctx.state.commitments.put(c);
+    }
+    Ok(json!({ "id": id }))
+}
+
+fn set_status(ctx: &mut Ctx<'_>, mut c: Commitment, status: CommitmentStatus) -> Value {
+    c.status = status;
+    if status == CommitmentStatus::Approved && c.approved.is_none() {
+        c.approved = Some(ctx.stamp());
+    }
+    c.updated = ctx.stamp();
+    let id = c.id;
+    ctx.state.commitments.put(c);
+    json!({ "id": id })
+}
+
+fn approve(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    if c.status != CommitmentStatus::Draft {
+        return Err(EngineError::conflict(format!("{} is {}; only drafts can be approved", c.label(), c.status)));
+    }
+    if c.lines.is_empty() {
+        return Err(EngineError::conflict(format!("add at least one line to {} before approving it", c.label())));
+    }
+    if let Some(v) = c.vendor {
+        super::prequal::check_prequalified(ctx, v)?;
+    }
+    if ctx.state.projects.get(c.project).is_some_and(|x| x.require_signed_contracts) && c.signature.status != SignatureStatus::Signed {
+        return Err(EngineError::conflict(format!(
+            "this project needs a signed contract before {} is approved; record the signature first",
+            c.label()
+        )));
+    }
+    Ok(set_status(ctx, c, CommitmentStatus::Approved))
+}
+
+/// A commitment whose contract can still be sent or signed: not complete, not void.
+fn open_for_signature(c: &Commitment) -> Result<()> {
+    if matches!(c.status, CommitmentStatus::Complete | CommitmentStatus::Void) {
+        return Err(EngineError::conflict(format!("{} is {}; its signature can't change", c.label(), c.status)));
+    }
+    Ok(())
+}
+
+fn set_signature(ctx: &mut Ctx<'_>, mut c: Commitment, signature: buildkiosk_model::finance::ContractSignature) -> Value {
+    c.signature = signature;
+    c.updated = ctx.stamp();
+    let (id, status) = (c.id, c.signature.status);
+    ctx.state.commitments.put(c);
+    json!({ "id": id, "signature": status })
+}
+
+fn send_for_signature(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    open_for_signature(&c)?;
+    if c.lines.is_empty() {
+        return Err(EngineError::conflict(format!("add at least one line to {} before sending it for signature", c.label())));
+    }
+    if c.signature.status == SignatureStatus::Signed {
+        return Err(EngineError::conflict(format!("the contract for {} is already signed", c.label())));
+    }
+    let (link, others, ordered) = super::signing::new_signing(ctx, p)?;
+    let sig = buildkiosk_model::finance::ContractSignature {
+        status: SignatureStatus::Sent,
+        sent_to: p.line_or_empty("to", text::SHORT)?,
+        sent_on: Some(p.date("on")?.unwrap_or_else(|| ctx.today())),
+        countersign: super::signing::countersign_flag(p, link.is_some())?,
+        link,
+        others,
+        ordered,
+        ..Default::default()
+    };
+    Ok(set_signature(ctx, c, sig))
+}
+
+fn record_signature(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    open_for_signature(&c)?;
+    if c.lines.is_empty() {
+        return Err(EngineError::conflict(format!("{} has no lines to sign for", c.label())));
+    }
+    if c.signature.status == SignatureStatus::Signed {
+        return Err(EngineError::conflict(format!("the contract for {} is already recorded as signed", c.label())));
+    }
+    let signer = p.req_line("signer", text::SHORT)?;
+    let signed_on = p.date("on")?.unwrap_or_else(|| ctx.today());
+    if c.signature.sent_on.is_some_and(|sent| signed_on < sent) {
+        return Err(p.bad("on", "can't be before the day the contract was sent"));
+    }
+    let sig = buildkiosk_model::finance::ContractSignature {
+        status: SignatureStatus::Signed,
+        signed_on: Some(signed_on),
+        signer,
+        note: p.line_or_empty("note", text::SHORT)?,
+        ..c.signature.clone()
+    };
+    Ok(set_signature(ctx, c, sig))
+}
+
+fn decline_signature(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    if c.signature.status != SignatureStatus::Sent {
+        return Err(EngineError::conflict(format!("the contract for {} is not out for signature", c.label())));
+    }
+    let sig = buildkiosk_model::finance::ContractSignature {
+        status: SignatureStatus::Declined,
+        note: p.line_or_empty("note", text::SHORT)?,
+        ..c.signature.clone()
+    };
+    Ok(set_signature(ctx, c, sig))
+}
+
+fn reset_signature(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    open_for_signature(&c)?;
+    match c.signature.status {
+        SignatureStatus::NotSent => return Err(EngineError::conflict(format!("the contract for {} has not been sent", c.label()))),
+        SignatureStatus::Signed if !is_admin(ctx, c.project) => {
+            return Err(EngineError::forbidden("only commitments admins can clear a signed contract"));
+        }
+        _ => {}
+    }
+    if c.status == CommitmentStatus::Approved
+        && c.signature.status == SignatureStatus::Signed
+        && ctx.state.projects.get(c.project).is_some_and(|x| x.require_signed_contracts)
+    {
+        return Err(EngineError::conflict("this project requires signed contracts, so an approved commitment keeps its signature"));
+    }
+    Ok(set_signature(ctx, c, Default::default()))
+}
+
+fn require_signed(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let project: Id<Project> = p.id("project")?;
+    let required = p.flag("required")?.ok_or_else(|| p.bad("required", "is required"))?;
+    if !ctx.state.projects.get(project).is_some_and(|x| x.deleted.is_none()) {
+        return Err(EngineError::not_found(format!("project {project} not found")));
+    }
+    ctx.state.projects.update(project, |x| x.require_signed_contracts = required);
+    Ok(json!({ "required": required }))
+}
+
+fn complete(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    if c.status != CommitmentStatus::Approved {
+        return Err(EngineError::conflict(format!("{} is {}; only approved commitments can be completed", c.label(), c.status)));
+    }
+    Ok(set_status(ctx, c, CommitmentStatus::Complete))
+}
+
+fn void(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    if c.status == CommitmentStatus::Void {
+        return Err(EngineError::conflict(format!("{} is already void", c.label())));
+    }
+    if ctx.state.commitment_invoices.iter().any(|i| i.commitment == c.id && i.deleted.is_none() && i.status != InvoiceStatus::Void) {
+        return Err(EngineError::conflict("invoices exist for this commitment; void them first"));
+    }
+    Ok(set_status(ctx, c, CommitmentStatus::Void))
+}
+
+fn delete(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let c = load(ctx, p)?;
+    let own_draft = c.status == CommitmentStatus::Draft && c.created.by.is_some() && c.created.by == ctx.person();
+    if !is_admin(ctx, c.project) && !own_draft {
+        return Err(EngineError::forbidden("only commitments admins can delete commitments (authors can delete their own drafts)"));
+    }
+    let stamp = ctx.stamp();
+    ctx.state.commitments.update(c.id, |x| x.deleted = Some(stamp));
+    Ok(json!({ "id": c.id }))
+}
+
+fn restore(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let project: Id<Project> = p.id("project")?;
+    let id: Id<Commitment> = p.id("id")?;
+    let c = in_project(&ctx.state.commitments, project, id, "commitment")?;
+    if c.deleted.is_none() {
+        return Err(EngineError::conflict(format!("{} is not in the recycle bin", c.label())));
+    }
+    ctx.state.commitments.update(id, |x| x.deleted = None);
+    Ok(json!({ "id": id }))
+}
+
+fn with_total(c: &Commitment) -> Value {
+    let mut v = serde_json::to_value(c).unwrap_or(Value::Null);
+    if let (Some(map), Some(total)) = (v.as_object_mut(), c.total()) {
+        map.insert("total".into(), json!(total));
+    }
+    v
+}
+
+fn list(v: &View<'_>, p: &Params<'_>) -> Result<Value> {
+    let project: Id<Project> = p.id("project")?;
+    let status = p.choice::<CommitmentStatus>("status")?;
+    let q = p.line("q", 200)?.map(|s| s.to_lowercase());
+    if p.flag_or("deleted", false)? {
+        if v.level(project, Tool::Commitments) < Level::Admin {
+            return Err(EngineError::forbidden("only commitments admins can see the recycle bin"));
+        }
+        let bin: Vec<Value> = v.state.commitments.iter().filter(|c| c.project == project && c.deleted.is_some()).map(with_total).collect();
+        return json(&bin);
+    }
+    let list: Vec<Value> = view::commitments_for(v.state, v.actor, project)
+        .into_iter()
+        .filter(|c| status.is_none_or(|s| c.status == s))
+        .filter(|c| q.as_ref().is_none_or(|q| c.title.to_lowercase().contains(q) || c.number.to_string() == *q))
+        .map(with_total)
+        .collect();
+    json(&list)
+}
+
+fn get(v: &View<'_>, p: &Params<'_>) -> Result<Value> {
+    let project: Id<Project> = p.id("project")?;
+    let id: Id<Commitment> = p.id("id")?;
+    let c = in_project(&v.state.commitments, project, id, "commitment")?;
+    if !view::can_see_commitment(v.state, v.actor, c) {
+        return Err(EngineError::not_found(format!("commitment {id} not found in this project")));
+    }
+    Ok(with_total(c))
+}
+
+/// Most files one commitment can carry.
+const MAX_ATTACHMENTS: usize = 50;
+
+fn attach(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let mut c = load(ctx, p)?;
+    if c.status == CommitmentStatus::Void {
+        return Err(EngineError::conflict(format!("{} is void; files can't be added", c.label())));
+    }
+    let sha256 = p.req_line("sha256", 64)?.to_ascii_lowercase();
+    if sha256.len() != 64 || !sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(p.bad("sha256", "must be 64 hex digits"));
+    }
+    let name = p.req_line("name", 200)?;
+    let size = p.int("size", 0..=2_000_000_000)?.ok_or_else(|| p.bad("size", "is required"))?;
+    let mime = p.line("mime", 100)?.filter(|m| !m.is_empty()).unwrap_or_else(|| "application/octet-stream".into());
+    if c.attachments.iter().any(|a| a.sha256 == sha256) {
+        return Ok(json!({ "id": c.id }));
+    }
+    if c.attachments.len() >= MAX_ATTACHMENTS {
+        return Err(EngineError::conflict(format!("{} already has {MAX_ATTACHMENTS} files", c.label())));
+    }
+    c.attachments.push(buildkiosk_model::common::FileRef { sha256, name, size: u64::try_from(size).unwrap_or(0), mime });
+    c.updated = ctx.stamp();
+    let id = c.id;
+    ctx.state.commitments.put(c);
+    Ok(json!({ "id": id }))
+}
+
+fn detach(ctx: &mut Ctx<'_>, p: &Params<'_>) -> Result<Value> {
+    let mut c = load(ctx, p)?;
+    // A signed contract is evidence: after approval only an admin removes a file.
+    if c.status != CommitmentStatus::Draft && !is_admin(ctx, c.project) {
+        return Err(EngineError::forbidden("only commitments admins can remove files once a commitment is approved"));
+    }
+    let sha256 = p.req_line("sha256", 64)?.to_ascii_lowercase();
+    let before = c.attachments.len();
+    c.attachments.retain(|a| a.sha256 != sha256);
+    if c.attachments.len() == before {
+        return Err(EngineError::not_found("that file is not attached to this commitment"));
+    }
+    c.updated = ctx.stamp();
+    let id = c.id;
+    ctx.state.commitments.put(c);
+    Ok(json!({ "id": id }))
+}
