@@ -1,0 +1,420 @@
+{
+  "checks": [
+    {
+      "area": "suite",
+      "detail": "forms, selects, checkboxes, buttons and links",
+      "id": "suite › the page reader understands forms and links",
+      "ms": 0,
+      "name": "the page reader understands forms and links",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "Demo company created in /tmp/buildkiosk-regress-3337/data.",
+      "id": "boot › the demo company is created from the command line",
+      "ms": 159,
+      "name": "the demo company is created from the command line",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "6 tokens",
+      "id": "boot › an API token is made for every role from the command line",
+      "ms": 37,
+      "name": "an API token is made for every role from the command line",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "127.0.0.1:38937",
+      "id": "boot › the server starts on a free port and answers",
+      "ms": 100,
+      "name": "the server starts on a free port and answers",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "200",
+      "id": "boot › the sign-in page answers",
+      "ms": 0,
+      "name": "the sign-in page answers",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "ada@example.com",
+      "id": "sign-in › admin signs in",
+      "ms": 26,
+      "name": "admin signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "priya.raman@example.com",
+      "id": "sign-in › project manager signs in",
+      "ms": 25,
+      "name": "project manager signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "marcus.lee@example.com",
+      "id": "sign-in › superintendent signs in",
+      "ms": 16,
+      "name": "superintendent signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "elena.cruz@example.com",
+      "id": "sign-in › project engineer signs in",
+      "ms": 16,
+      "name": "project engineer signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "tom.okafor@example.com",
+      "id": "sign-in › subcontractor signs in",
+      "ms": 16,
+      "name": "subcontractor signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "hana.berg@example.com",
+      "id": "sign-in › owner and design team signs in",
+      "ms": 16,
+      "name": "owner and design team signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "HttpOnly, SameSite, Path=/",
+      "id": "sign-in › session and form cookies are HttpOnly and SameSite",
+      "ms": 16,
+      "name": "session and form cookies are HttpOnly and SameSite",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "401",
+      "id": "sign-in › a wrong password is refused",
+      "ms": 16,
+      "name": "a wrong password is refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "403",
+      "id": "safety › a sign-in without the form token is refused (CSRF)",
+      "ms": 0,
+      "name": "a sign-in without the form token is refused (CSRF)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "projects",
+      "detail": "projects [2, 1]",
+      "id": "projects › the demo projects are listed on the home page",
+      "ms": 0,
+      "name": "the demo projects are listed on the home page",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×176, 303×5, 404×53",
+      "id": "routes › admin: every page in the route table answers without a server error",
+      "ms": 71,
+      "name": "admin: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×174, 303×7, 404×53",
+      "id": "routes › project manager: every page in the route table answers without a server error",
+      "ms": 71,
+      "name": "project manager: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×172, 303×7, 404×55",
+      "id": "routes › superintendent: every page in the route table answers without a server error",
+      "ms": 65,
+      "name": "superintendent: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×172, 303×7, 404×55",
+      "id": "routes › project engineer: every page in the route table answers without a server error",
+      "ms": 65,
+      "name": "project engineer: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×166, 303×7, 404×61",
+      "id": "routes › subcontractor: every page in the route table answers without a server error",
+      "ms": 61,
+      "name": "subcontractor: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×169, 303×7, 404×58",
+      "id": "routes › owner and design team: every page in the route table answers without a server error",
+      "ms": 63,
+      "name": "owner and design team: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "221 private pages",
+      "id": "access › anonymous: every private page sends the visitor to sign in",
+      "ms": 47,
+      "name": "anonymous: every private page sends the visitor to sign in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "/settings, /admin/backups, /admin/email",
+      "id": "access › subcontractor: company admin pages are refused",
+      "ms": 0,
+      "name": "subcontractor: company admin pages are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "/settings, /admin/backups, /admin/email",
+      "id": "access › owner and design team: company admin pages are refused",
+      "ms": 0,
+      "name": "owner and design team: company admin pages are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "/settings, /admin/backups, /admin/email",
+      "id": "access › project engineer: company admin pages are refused",
+      "ms": 0,
+      "name": "project engineer: company admin pages are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "150 pages: 200×150",
+      "id": "crawl › admin: every linked page answers without a server error",
+      "ms": 0,
+      "name": "admin: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "150 pages: 200×150",
+      "id": "crawl › project manager: every linked page answers without a server error",
+      "ms": 0,
+      "name": "project manager: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "150 pages: 200×150",
+      "id": "crawl › superintendent: every linked page answers without a server error",
+      "ms": 0,
+      "name": "superintendent: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "150 pages: 200×150",
+      "id": "crawl › project engineer: every linked page answers without a server error",
+      "ms": 0,
+      "name": "project engineer: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "150 pages: 200×150",
+      "id": "crawl › subcontractor: every linked page answers without a server error",
+      "ms": 0,
+      "name": "subcontractor: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "150 pages: 200×150",
+      "id": "crawl › owner and design team: every linked page answers without a server error",
+      "ms": 0,
+      "name": "owner and design team: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "loops",
+      "detail": "RFI 7: rfi.create → rfi.update → rfi.attach → rfi.respond → rfi.close",
+      "id": "loops › RFI: create, edit, attach, respond, close (journal checked each step)",
+      "ms": 24,
+      "name": "RFI: create, edit, attach, respond, close (journal checked each step)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "loops",
+      "detail": "item 7: punch.create → punch.update → punch.attach → punch.complete",
+      "id": "loops › punch list: create, edit, attach, finish (journal checked each step)",
+      "ms": 19,
+      "name": "punch list: create, edit, attach, finish (journal checked each step)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "loops",
+      "detail": "log 3: daily_log.create → daily_log.update → daily_log.attach → daily_log.submit",
+      "id": "loops › daily log: create, edit, attach, submit (journal checked each step)",
+      "ms": 20,
+      "name": "daily log: create, edit, attach, submit (journal checked each step)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "80 post routes refused",
+      "id": "safety › every form post without its CSRF token is refused and changes nothing",
+      "ms": 20,
+      "name": "every form post without its CSRF token is refused and changes nothing",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "2681 answers checked",
+      "id": "safety › every answer carries the security headers",
+      "ms": 0,
+      "name": "every answer carries the security headers",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "2681 answers checked",
+      "id": "safety › no answer shows panic text, a stack trace, a source location or a secret",
+      "ms": 0,
+      "name": "no answer shows panic text, a stack trace, a source location or a secret",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "134 lines",
+      "id": "safety › the journal holds no password, token or session cookie",
+      "ms": 0,
+      "name": "the journal holds no password, token or session cookie",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "yes",
+      "id": "boot › the server was still running at the end of the run",
+      "ms": 0,
+      "name": "the server was still running at the end of the run",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "1 log lines",
+      "id": "safety › no panics in the server log (first run)",
+      "ms": 0,
+      "name": "no panics in the server log (first run)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "clean",
+      "id": "safety › the server log shows no password, token or session cookie (first run)",
+      "ms": 0,
+      "name": "the server log shows no password, token or session cookie (first run)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    }
+  ],
+  "commit": "053bab4f8941",
+  "gate": "pass",
+  "generated": "2026-11-04T03:05:36Z",
+  "problems": [],
+  "requests": 2681,
+  "suite": "smoke"
+}
