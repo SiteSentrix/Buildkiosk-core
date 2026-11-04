@@ -1405,6 +1405,16 @@ fn upload_route_stories(run: &mut Run, ctx: &mut Ctx) {
     let data = ctx.data.clone();
     let routes: Vec<String> = ctx.routes.iter().filter(|r| r.post && is_upload_route(&r.path)).map(|r| r.path.clone()).collect();
     let Ok(c) = user(&mut ctx.users, "admin") else { return };
+    // Records for the two upload routes nothing else in the run makes: a started form and a prequalification.
+    run.check("tools", "forms: make a template and start a form from it", Tag::Release, || {
+        let set = [("name", "QA regression: area clean-up checklist"), ("fields.0.label", "Is the area swept?")];
+        step(c, &data, &format!("/projects/{p}/forms/templates"), "/do/form_template.create", &set, None, "form_template.create")?;
+        let loc = step(c, &data, &format!("/projects/{p}/forms"), "/do/form.create", &[("template", html::FIRST)], None, "form.create")?;
+        Ok(format!("form_template.create → form.create ({loc})"))
+    });
+    run.check("tools", "prequalification: add a record for a company", Tag::Release, || {
+        step(c, &data, "/prequalification", "/do/prequal.save", &[("vendor", html::FIRST), ("notes", "QA regression record")], None, "prequal.save")
+    });
     // The form token belongs to the session, so one from any page serves every form.
     let csrf = page_forms(c, "/")
         .ok()
