@@ -1049,8 +1049,12 @@ fn session(app: &App, inner: &Inner, headers: &HeaderMap) -> Option<Session> {
     let t = inner.tenant.as_ref()?;
     let id = Id::new(data.person);
     let p = t.engine.state().people.get(id)?;
-    (p.is_enabled() && p.is_user && inner.creds.epoch(data.person) == data.epoch && inner.creds.has_password(data.person))
-        .then_some(Session { person: id, cookie: raw })
+    (p.is_enabled()
+        && p.is_user
+        && inner.creds.epoch(data.person) == data.epoch
+        && inner.creds.has_password(data.person)
+        && !inner.creds.session_ended(&raw))
+    .then_some(Session { person: id, cookie: raw })
 }
 
 /// The anonymous CSRF cookie (made if absent) and the token for it.
@@ -3913,6 +3917,25 @@ async fn logout(State(app): State<Shared>, headers: HeaderMap, body: Bytes) -> R
     if !auth::csrf_ok(app.secret(), &csrf_cookie, get_form(&form, "_csrf")) {
         return plain(StatusCode::FORBIDDEN, "The form expired. Go back, reload the page and try again.");
     }
+    // End the session on the server too (issue #21), so a kept copy of the cookie stops working. Only this
+    // session ends; the person stays signed in on their other devices.
+    let mut inner = app.lock();
+    let now = now_ms();
+    if let Some(s) = session(&app, &inner, &headers)
+        && let Some(data) = auth::read_session(app.secret(), &s.cookie, now)
+    {
+        let mut creds = inner.creds.clone();
+        if !creds.end_session(&s.cookie, data.expires, now) {
+            // Too many ended sessions to remember: end all of this person's sessions instead.
+            creds.bump_epoch(data.person);
+        }
+        if let Err(e) = save_creds(&mut inner, creds.clone()) {
+            // Still end it in memory, so the cookie stops working at least until the server restarts.
+            log::warn!("could not save the sign-out: {e}");
+            inner.creds = creds;
+        }
+    }
+    drop(inner);
     with_cookie(redirect("/login"), &auth::set_cookie(SESSION_COOKIE, "", 0, app.secure))
 }
 

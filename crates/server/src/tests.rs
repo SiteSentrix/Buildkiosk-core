@@ -5137,3 +5137,55 @@ async fn a_closed_company_stops_its_jobs_and_opens_again() {
     drop((first, closed, again, pages, tenants));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// Signs Ada in through the sign-in form; her session cookie.
+async fn sign_in_ada(app: &Shared) -> String {
+    let (_, h, page) = send(app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let login = format!("_csrf={}&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (st, h, _) = send(app, post("/login", &anon, login)).await;
+    assert_eq!(st, StatusCode::SEE_OTHER);
+    cookies(&h)
+}
+
+#[tokio::test]
+async fn signing_out_ends_the_session_on_the_server() {
+    // Issue #21: the cookie from before sign-out kept opening every page until it expired.
+    let dir = temp("logout");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    let (_, h, page) = send(&app, Request::get("/setup").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body =
+        format!("_csrf={}&name=Acme&first_name=Ada&last_name=Admin&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/setup", &anon, body)).await;
+    let old = cookies(&h);
+    let home = |cookie: &str| Request::get("/").header("cookie", cookie).body(Body::empty()).unwrap();
+    // The same person signed in on another device.
+    let other = sign_in_ada(&app).await;
+    assert_ne!(other, old);
+    let (st, _, page) = send(&app, home(&old)).await;
+    assert_eq!(st, StatusCode::OK);
+    let csrf = field(&page, "_csrf");
+
+    // A sign-out without the form token ends nothing.
+    assert_eq!(send(&app, post("/logout", &old, "_csrf=bad".into())).await.0, StatusCode::FORBIDDEN);
+    assert_eq!(send(&app, home(&old)).await.0, StatusCode::OK);
+
+    let (st, h, _) = send(&app, post("/logout", &old, format!("_csrf={csrf}"))).await;
+    assert_eq!((st, h.get(LOCATION).unwrap().to_str().unwrap()), (StatusCode::SEE_OTHER, "/login"));
+    // The old cookie, kept by someone, no longer opens anything; the other device stays signed in.
+    let (st, h, _) = send(&app, home(&old)).await;
+    assert_eq!((st, h.get(LOCATION).map(|v| v.to_str().unwrap().to_string())), (StatusCode::SEE_OTHER, Some("/login".to_string())));
+    assert_eq!(send(&app, home(&other)).await.0, StatusCode::OK);
+
+    // Signing in again works, and the sign-out survives a restart (it is saved with the credentials).
+    let new = sign_in_ada(&app).await;
+    assert_eq!(send(&app, home(&new)).await.0, StatusCode::OK);
+    drop(app);
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    assert_eq!(send(&app, home(&old)).await.0, StatusCode::SEE_OTHER);
+    assert_eq!(send(&app, home(&new)).await.0, StatusCode::OK);
+    assert_eq!(send(&app, home(&other)).await.0, StatusCode::OK);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
