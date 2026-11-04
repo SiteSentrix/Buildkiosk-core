@@ -1,6 +1,10 @@
 //! Reads the server-rendered pages the way a browser would for this suite: the links on a page, and its forms with
 //! the values a browser would send (filling in required fields a person would have to type).
 
+/// In [`Form::fill`]: choose the first choice the form offers for that field (a select's first option with a value, or
+/// the first checkbox or radio button of that name), as a person would tick the first box.
+pub const FIRST: &str = "\u{1}first";
+
 pub fn unescape(s: &str) -> String {
     s.replace("&quot;", "\"").replace("&#39;", "'").replace("&#x27;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 }
@@ -240,11 +244,28 @@ impl Form {
         }
         // Only what the form has: a person can't send a field the page doesn't offer.
         for (k, v) in set {
-            if !v.is_empty() && self.has(k) {
+            if v.is_empty() || !self.has(k) {
+                continue;
+            }
+            if *v == FIRST {
+                if let Some(first) = self.first_choice(k) {
+                    out.push(((*k).to_string(), first));
+                }
+            } else {
                 out.push(((*k).to_string(), (*v).to_string()));
             }
         }
         out
+    }
+
+    /// The first choice offered for field `name`: a select's first option with a value, or the first checkbox or
+    /// radio button of that name.
+    fn first_choice(&self, name: &str) -> Option<String> {
+        self.fields.iter().filter(|f| f.name == name).find_map(|f| match f.kind.as_str() {
+            "select" => f.options.iter().find(|(v, _)| !v.is_empty()).map(|(v, _)| v.clone()),
+            "checkbox" | "radio" if !f.value.is_empty() => Some(f.value.clone()),
+            _ => None,
+        })
     }
 
     pub fn has(&self, name: &str) -> bool {

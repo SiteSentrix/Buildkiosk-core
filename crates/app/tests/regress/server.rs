@@ -19,7 +19,11 @@ pub fn bin() -> PathBuf {
 pub fn cli(bin: &Path, args: &[&str]) -> Result<String, String> {
     let out = Command::new(bin).args(args).env("RUST_LOG", "warn").stdin(Stdio::null()).output().map_err(|e| format!("{}: {e}", bin.display()))?;
     let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
-    if out.status.success() { Ok(stdout) } else { Err(format!("`buildkiosk {}` failed ({}): {stdout}{}", args.join(" "), out.status, String::from_utf8_lossy(&out.stderr))) }
+    if out.status.success() {
+        Ok(stdout)
+    } else {
+        Err(format!("`buildkiosk {}` failed ({}): {stdout}{}", args.join(" "), out.status, String::from_utf8_lossy(&out.stderr)))
+    }
 }
 
 pub struct Server {

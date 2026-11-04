@@ -116,14 +116,17 @@ impl Client {
         }
         for f in files {
             body.extend_from_slice(
-                format!("--{boundary}\r\nContent-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", f.field, f.name, f.mime)
-                    .as_bytes(),
+                format!(
+                    "--{boundary}\r\nContent-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n",
+                    f.field, f.name, f.mime
+                )
+                .as_bytes(),
             );
             body.extend_from_slice(&f.bytes);
             body.extend_from_slice(b"\r\n");
         }
         body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
-        self.request("POST", path, Some(&format!("multipart/form-data; boundary={boundary}")), &body)
+        self.request("POST", path, Some(format!("multipart/form-data; boundary={boundary}").as_str()), &body)
     }
 
     pub fn post_json(&mut self, path: &str, json: &str) -> Response {
@@ -158,7 +161,8 @@ impl Client {
         let Ok(mut stream) = TcpStream::connect(("127.0.0.1", self.port)) else { return Vec::new() };
         let _ = stream.set_read_timeout(Some(Duration::from_secs(180)));
         let _ = stream.set_write_timeout(Some(Duration::from_secs(180)));
-        let mut head = format!("{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nConnection: close\r\nUser-Agent: buildkiosk-regress\r\n", self.port);
+        let mut head =
+            format!("{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nConnection: close\r\nUser-Agent: buildkiosk-regress\r\n", self.port);
         if !self.cookies.is_empty() {
             let jar: Vec<String> = self.cookies.iter().map(|(k, v)| format!("{k}={v}")).collect();
             head.push_str(&format!("Cookie: {}\r\n", jar.join("; ")));
@@ -184,7 +188,8 @@ impl Client {
     }
 
     fn record(&self, method: &str, path: &str, res: &Response) {
-        let missing: Vec<&'static str> = if res.status == 0 { Vec::new() } else { SECURITY_HEADERS.into_iter().filter(|h| res.header(h).is_none()).collect() };
+        let missing: Vec<&'static str> =
+            if res.status == 0 { Vec::new() } else { SECURITY_HEADERS.into_iter().filter(|h| res.header(h).is_none()).collect() };
         let mut leaks = Vec::new();
         let textual = res.header("content-type").is_none_or(|c| c.starts_with("text/") || c.contains("json"));
         if textual {
@@ -276,15 +281,13 @@ pub fn dec(s: &str) -> String {
     while i < bytes.len() {
         match bytes[i] {
             b'+' => out.push(b' '),
-            b'%' if i + 2 < bytes.len() => {
-                match u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or("zz"), 16) {
-                    Ok(v) => {
-                        out.push(v);
-                        i += 2;
-                    }
-                    Err(_) => out.push(b'%'),
+            b'%' if i + 2 < bytes.len() => match u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or("zz"), 16) {
+                Ok(v) => {
+                    out.push(v);
+                    i += 2;
                 }
-            }
+                Err(_) => out.push(b'%'),
+            },
             c => out.push(c),
         }
         i += 1;

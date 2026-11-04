@@ -214,7 +214,9 @@ pub fn finish(run: &Run, inputs: &Inputs) -> bool {
     for s in skips {
         match parse_day(&s.expires) {
             None => problems.push(format!("known-skip `{}` has no valid `expires` date (YYYY-MM-DD)", s.check)),
-            Some(d) if d < today => problems.push(format!("known-skip `{}` expired on {}: fix the check or renew it with a reason", s.check, s.expires)),
+            Some(d) if d < today => {
+                problems.push(format!("known-skip `{}` expired on {}: fix the check or renew it with a reason", s.check, s.expires))
+            }
             Some(d) if d > today + MAX_SKIP_DAYS => {
                 problems.push(format!("known-skip `{}` expires {}, more than {MAX_SKIP_DAYS} days away", s.check, s.expires))
             }
@@ -340,7 +342,7 @@ pub fn finish(run: &Run, inputs: &Inputs) -> bool {
 
     let checks: Vec<Value> = rows
         .iter()
-        .map(|(c, w, note)| json!({"id": c.id(), "area": c.area, "name": c.name, "tag": c.tag.word(), "result": w, "ms": c.ms, "detail": c.detail, "note": note}))
+        .map(|(c, w, note)| json!({"id": c.id(), "area": c.area, "name": c.name, "tag": c.tag.word(), "result": w, "ms": u64::try_from(c.ms).unwrap_or(u64::MAX), "detail": c.detail, "note": note}))
         .collect();
     let report = json!({
         "suite": run.suite,

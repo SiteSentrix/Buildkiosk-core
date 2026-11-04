@@ -353,7 +353,11 @@ fn route_stories(run: &mut Run, ctx: &mut Ctx) {
                     bad.push(format!("{path} → {}", res.status));
                 }
             }
-            if bad.is_empty() { Ok(format!("{} routes: {}", gets.len(), tally(&statuses))) } else { Err(format!("{} server errors: {}", bad.len(), bad.join("; "))) }
+            if bad.is_empty() {
+                Ok(format!("{} routes: {}", gets.len(), tally(&statuses)))
+            } else {
+                Err(format!("{} server errors: {}", bad.len(), bad.join("; ")))
+            }
         });
     }
     if let Ok(c) = user(&mut ctx.users, "admin") {
@@ -391,6 +395,14 @@ fn route_stories(run: &mut Run, ctx: &mut Ctx) {
                 continue;
             }
             count += 1;
+            // A page may first send the visitor elsewhere on the site (a list instead of a form): follow a few hops.
+            let mut res = res;
+            let mut hops = 0;
+            while res.is_redirect() && !res.location().starts_with("/login") && res.location().starts_with('/') && hops < 3 {
+                let next = res.location().to_string();
+                res = anon.get(&next);
+                hops += 1;
+            }
             let to_login = res.is_redirect() && res.location().starts_with("/login");
             if !(to_login || matches!(res.status, 401 | 403 | 404)) {
                 bad.push(format!("{path} → {} {}", res.status, res.location()));
@@ -413,15 +425,16 @@ fn route_stories(run: &mut Run, ctx: &mut Ctx) {
         });
     }
     if let Ok(c) = user(&mut ctx.users, "subcontractor") {
-        run.check("access", "refused and missing pages answer 403 or 404, not 200", Tag::Release, || {
+        run.check("access", "refused and missing pages answer 403, 404 or a redirect, not 200", Tag::Release, || {
             let mut bad = Vec::new();
             for path in ADMIN_PAGES.iter().map(|p| (*p).to_string()).chain([format!("/projects/{project}/rfis/99999999")]) {
                 let res = c.get(&path);
-                if !matches!(res.status, 403 | 404) {
+                // A redirect (to sign in, or back to a page they may see) is a refusal too (issue #3).
+                if !(matches!(res.status, 403 | 404) || res.is_redirect()) {
                     bad.push(format!("{path} → {}", res.status));
                 }
             }
-            if bad.is_empty() { Ok("403/404".to_string()) } else { Err(bad.join("; ")) }
+            if bad.is_empty() { Ok("403/404 or a redirect".to_string()) } else { Err(bad.join("; ")) }
         });
     }
     // Crawl: every link each role is shown, followed from the home page.
@@ -433,7 +446,11 @@ fn route_stories(run: &mut Run, ctx: &mut Ctx) {
         let statuses = tally(&found.statuses);
         let errors = found.errors;
         run.check("crawl", &format!("{role}: every linked page answers without a server error"), Tag::Smoke, || {
-            if errors.is_empty() { Ok(format!("{pages} pages: {statuses}")) } else { Err(format!("{} server errors: {}", errors.len(), errors.join("; "))) }
+            if errors.is_empty() {
+                Ok(format!("{pages} pages: {statuses}"))
+            } else {
+                Err(format!("{} server errors: {}", errors.len(), errors.join("; ")))
+            }
         });
         let broken = found.broken;
         run.check("crawl", &format!("{role}: every link shown opens (no 4xx, no \"not found\" page)"), Tag::Release, || {
@@ -462,7 +479,13 @@ fn shape(link: &str) -> String {
     let (path, query) = link.split_once('?').unwrap_or((link, ""));
     let segs: Vec<&str> = path
         .split('/')
-        .map(|s| if !s.is_empty() && (s.chars().all(|c| c.is_ascii_digit()) || (s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit()))) { "#" } else { s })
+        .map(|s| {
+            if !s.is_empty() && (s.chars().all(|c| c.is_ascii_digit()) || (s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit()))) {
+                "#"
+            } else {
+                s
+            }
+        })
         .collect();
     let mut keys: Vec<&str> = query.split('&').filter_map(|kv| kv.split('=').next()).filter(|k| !k.is_empty()).collect();
     keys.sort_unstable();
@@ -620,73 +643,66 @@ fn text_file(name: &str) -> FilePart {
     FilePart::new("file", name, "text/plain", b"QA regression attachment: fictional test data.\n".to_vec())
 }
 
+/// One step of a tool loop: send the form like a person, then expect `cmd` in the journal. The redirect target.
+fn step(c: &mut Client, data: &Path, page: &str, action: &str, set: &[(&str, &str)], file: Option<FilePart>, cmd: &str) -> Result<String, String> {
+    let n = journal_len(data);
+    let loc = submit(c, page, action, set, file)?;
+    journaled(data, n, cmd).map_err(|e| format!("{e}, after the form on {page} went to {loc}"))?;
+    Ok(loc)
+}
+
+/// Presses one of `commands` on `page`, then expects it in the journal; the command pressed.
+fn press_step(c: &mut Client, data: &Path, page: &str, commands: &[&str]) -> Result<String, String> {
+    let n = journal_len(data);
+    let pressed = press(c, page, commands)?;
+    journaled(data, n, &pressed)
+}
+
 fn loop_stories(run: &mut Run, ctx: &mut Ctx) {
     let p = ctx.projects.first().copied().unwrap_or(1);
     let data = ctx.data.clone();
     if let Ok(c) = user(&mut ctx.users, "project manager") {
         let base = format!("/projects/{p}/rfis");
         run.check("loops", "RFI: create, edit, attach, respond, close (journal checked each step)", Tag::Smoke, || {
-            let mut steps = Vec::new();
-            let n = journal_len(&data);
-            let set = [("subject", "QA regression: ceiling height at grid C"), ("question", "Which drawing governs at grid C?"), ("open", "true")];
-            let loc = submit(c, &format!("{base}/new"), "/do/rfi.create", &set, None)?;
+            let set = [
+                ("subject", "QA regression: ceiling height at grid C"),
+                ("question", "Which drawing governs at grid C?"),
+                ("assignees[]", html::FIRST),
+                ("open", "true"),
+            ];
+            let loc = step(c, &data, &format!("{base}/new"), "/do/rfi.create", &set, None, "rfi.create")?;
             let id = id_after(&loc, "/rfis/").ok_or_else(|| format!("no RFI id in {loc}"))?;
-            steps.push(journaled(&data, n, "rfi.create")?);
             let here = format!("{base}/{id}");
-            let n = journal_len(&data);
-            submit(c, &format!("{here}/edit"), "/do/rfi.update", &[("location", "Level 2, grid C")], None)?;
-            steps.push(journaled(&data, n, "rfi.update")?);
-            let n = journal_len(&data);
-            submit(c, &here, &format!("{here}/upload"), &[], Some(text_file("qa-note.txt")))?;
-            steps.push(journaled(&data, n, "rfi.attach")?);
-            let n = journal_len(&data);
-            submit(c, &here, &format!("{here}/respond"), &[("body", "QA regression: the section governs.")], None)?;
-            steps.push(journaled(&data, n, "rfi.respond")?);
-            let n = journal_len(&data);
-            steps.push(press(c, &here, &["rfi.close"])?);
-            journaled(&data, n, "rfi.close")?;
-            Ok(format!("RFI {id}: {}", steps.join(" → ")))
+            step(c, &data, &format!("{here}/edit"), "/do/rfi.update", &[("location", "Level 2, grid C")], None, "rfi.update")?;
+            step(c, &data, &here, &format!("{here}/upload"), &[], Some(text_file("qa-note.txt")), "rfi.attach")?;
+            step(c, &data, &here, &format!("{here}/respond"), &[("body", "QA regression: the section governs.")], None, "rfi.respond")?;
+            press_step(c, &data, &here, &["rfi.close"])?;
+            Ok(format!("RFI {id}: rfi.create → rfi.update → rfi.attach → rfi.respond → rfi.close"))
         });
         let base = format!("/projects/{p}/punch-list");
         run.check("loops", "punch list: create, edit, attach, finish (journal checked each step)", Tag::Smoke, || {
-            let mut steps = Vec::new();
-            let n = journal_len(&data);
-            let loc = submit(c, &format!("{base}/new"), "", &[("title", "QA regression: patch drywall at door 12"), ("location", "Level 1")], None)?;
+            let set = [("title", "QA regression: patch drywall at door 12"), ("location", "Level 1"), ("assignees[]", html::FIRST)];
+            let loc = step(c, &data, &format!("{base}/new"), "/do/punch.create", &set, None, "punch.create")?;
             let id = id_after(&loc, "/punch-list/").ok_or_else(|| format!("no item id in {loc}"))?;
-            steps.push(journaled(&data, n, "punch.")?);
             let here = format!("{base}/{id}");
-            let n = journal_len(&data);
-            submit(c, &format!("{here}/edit"), "", &[], None)?;
-            steps.push(journaled(&data, n, "punch.")?);
-            let n = journal_len(&data);
-            submit(c, &here, &format!("{here}/upload"), &[], Some(text_file("qa-punch.txt")))?;
-            steps.push(journaled(&data, n, "punch.attach")?);
-            let n = journal_len(&data);
-            let pressed = press(c, &here, &["punch.complete", "punch.close", "punch.verify"])?;
-            steps.push(journaled(&data, n, &pressed)?);
-            Ok(format!("item {id}: {}", steps.join(" → ")))
+            step(c, &data, &format!("{here}/edit"), "/do/punch.update", &[("location", "Level 1, door 12")], None, "punch.update")?;
+            step(c, &data, &here, &format!("{here}/upload"), &[], Some(text_file("qa-punch.txt")), "punch.attach")?;
+            let finished = press_step(c, &data, &here, &["punch.complete", "punch.close", "punch.verify"])?;
+            Ok(format!("item {id}: punch.create → punch.update → punch.attach → {finished}"))
         });
     }
     if let Ok(c) = user(&mut ctx.users, "superintendent") {
         let base = format!("/projects/{p}/daily-logs");
         run.check("loops", "daily log: create, edit, attach, submit (journal checked each step)", Tag::Smoke, || {
-            let mut steps = Vec::new();
-            let n = journal_len(&data);
             let set = [("date", "2026-10-05"), ("work_performed", "QA regression: formed and poured footing F-3.")];
-            let loc = submit(c, &format!("{base}/new"), "", &set, None)?;
+            let loc = step(c, &data, &format!("{base}/new"), "", &set, None, "daily_log.create")?;
             let id = id_after(&loc, "/daily-logs/").ok_or_else(|| format!("no log id in {loc}"))?;
-            steps.push(journaled(&data, n, "daily_log.create")?);
             let here = format!("{base}/{id}");
-            let n = journal_len(&data);
-            submit(c, &format!("{here}/edit"), "", &[], None)?;
-            steps.push(journaled(&data, n, "daily_log.update")?);
-            let n = journal_len(&data);
-            submit(c, &here, &format!("{here}/upload"), &[], Some(text_file("qa-log.txt")))?;
-            steps.push(journaled(&data, n, "daily_log.attach")?);
-            let n = journal_len(&data);
-            steps.push(press(c, &here, &["daily_log.submit"])?);
-            journaled(&data, n, "daily_log.submit")?;
-            Ok(format!("log {id}: {}", steps.join(" → ")))
+            let edit = [("work_performed", "QA regression: formed, poured and stripped footing F-3.")];
+            step(c, &data, &format!("{here}/edit"), "", &edit, None, "daily_log.update")?;
+            step(c, &data, &here, &format!("{here}/upload"), &[], Some(text_file("qa-log.txt")), "daily_log.attach")?;
+            press_step(c, &data, &here, &["daily_log.submit"])?;
+            Ok(format!("log {id}: daily_log.create → daily_log.update → daily_log.attach → daily_log.submit"))
         });
     }
 }
@@ -696,28 +712,29 @@ fn tool_stories(run: &mut Run, ctx: &mut Ctx) {
     let p = ctx.projects.first().copied().unwrap_or(1);
     let data = ctx.data.clone();
     let Ok(c) = user(&mut ctx.users, "project manager") else { return };
-    let tools = [
-        "submittals",
-        "observations",
-        "tasks",
-        "incidents",
-        "meetings",
-        "transmittals",
-        "correspondence",
-        "action-plans",
-        "inspections",
-        "commitments",
-        "change-events",
-        "prime-contracts",
-        "bidding",
-        "estimating",
+    // Each tool with what a person must choose on its "new" page (everything else is filled in as typed text).
+    let tools: [(&str, &[(&str, &str)]); 14] = [
+        ("submittals", &[]),
+        ("observations", &[]),
+        ("tasks", &[]),
+        ("incidents", &[]),
+        ("meetings", &[]),
+        ("transmittals", &[]),
+        ("correspondence", &[]),
+        ("action-plans", &[]),
+        ("inspections", &[("template", html::FIRST)]),
+        ("commitments", &[]),
+        ("change-events", &[]),
+        ("prime-contracts", &[]),
+        ("bidding", &[]),
+        ("estimating", &[]),
     ];
-    for tool in tools {
+    for (tool, choose) in tools {
         let base = format!("/projects/{p}/{tool}");
         run.check("tools", &format!("{tool}: create, open, edit, attach"), Tag::Release, || {
             let mut steps = Vec::new();
             let n = journal_len(&data);
-            let loc = submit(c, &format!("{base}/new"), "", &[], None)?;
+            let loc = submit(c, &format!("{base}/new"), "", choose, None)?;
             let id = id_after(&loc, &format!("/{tool}/")).ok_or_else(|| format!("created, but no id in {loc}"))?;
             let made = new_cmds(&data, n);
             if made.is_empty() {
@@ -783,7 +800,15 @@ fn newest_id(page: &str, prefix: &str) -> Option<u64> {
 fn exchange_stories(run: &mut Run, ctx: &mut Ctx) {
     let (p, q) = (ctx.projects.first().copied().unwrap_or(1), ctx.projects.get(1).copied().unwrap_or(2));
     let data = ctx.data.clone();
-    let csvs: Vec<String> = ctx.routes.iter().filter(|r| r.get && r.path.ends_with(".csv") && !r.path.contains("{iid}") && !r.path.contains("{eid}")).map(|r| r.path.clone()).collect();
+    let csvs: Vec<String> = ctx
+        .routes
+        .iter()
+        // The forms report needs a chosen form template (`?template=`), so it is reached from its page instead.
+        .filter(|r| {
+            r.get && r.path.ends_with(".csv") && !r.path.contains("{iid}") && !r.path.contains("{eid}") && !r.path.ends_with("/forms/report.csv")
+        })
+        .map(|r| r.path.clone())
+        .collect();
     let Ok(c) = user(&mut ctx.users, "admin") else { return };
     run.check("exports", "every CSV export downloads as CSV", Tag::Release, || {
         let mut bad = Vec::new();
@@ -800,7 +825,11 @@ fn exchange_stories(run: &mut Run, ctx: &mut Ctx) {
     run.check("exports", "a spreadsheet formula typed into an RFI is defused in the CSV", Tag::Release, || {
         submit(c, &format!("/projects/{p}/rfis/new"), "/do/rfi.create", &[("subject", "=1+2 QA regression formula")], None)?;
         let csv = c.get(&format!("/projects/{p}/rfis.csv")).text();
-        if csv.contains("'=1+2 QA regression formula") { Ok("written as '=1+2…".to_string()) } else { Err("the formula is not defused".to_string()) }
+        if csv.contains("'=1+2 QA regression formula") {
+            Ok("written as '=1+2…".to_string())
+        } else {
+            Err("the formula is not defused".to_string())
+        }
     });
     run.check("imports", "schedule exchange file: export from one project, import into the other", Tag::Release, || {
         let xml = c.get(&format!("/projects/{p}/schedule.xml"));
@@ -812,7 +841,11 @@ fn exchange_stories(run: &mut Run, ctx: &mut Ctx) {
         submit(c, &format!("/projects/{q}/schedule"), &format!("/projects/{q}/schedule/import-xml"), &[], Some(file))?;
         journaled(&data, n, "schedule.import_xml")?;
         let csv = c.get(&format!("/projects/{q}/schedule.csv")).text();
-        if csv.contains("Foundations") { Ok(format!("{} bytes round-tripped", xml.body.len())) } else { Err("the imported tasks are not in the other project".to_string()) }
+        if csv.contains("Foundations") {
+            Ok(format!("{} bytes round-tripped", xml.body.len()))
+        } else {
+            Err("the imported tasks are not in the other project".to_string())
+        }
     });
     run.check("imports", "budget: export the CSV, import it into the other project", Tag::Release, || {
         let csv = c.get(&format!("/projects/{p}/budget.csv"));
@@ -968,13 +1001,21 @@ fn session_stories(run: &mut Run, ctx: &mut Ctx) {
         }
         c.cookies = old;
         let res = c.get("/");
-        if res.status == 200 { Err("the session cookie from before signing out still opens the home page".to_string()) } else { Ok("old cookie refused".to_string()) }
+        if res.status == 200 {
+            Err("the session cookie from before signing out still opens the home page".to_string())
+        } else {
+            Ok("old cookie refused".to_string())
+        }
     });
     let Ok(pm) = user(&mut ctx.users, "project manager") else { return };
     run.check("access", "a record opened under another project is not found", Tag::Release, || {
         let rfi = newest_id(&pm.get(&format!("/projects/{p}/rfis")).text(), &format!("/projects/{p}/rfis/")).ok_or("no RFI listed")?;
         let res = pm.get(&format!("/projects/{q}/rfis/{rfi}"));
-        if res.status == 404 || res.text().contains(NOT_FOUND_TEXT) { Ok(format!("RFI {rfi} under project {q}: not found")) } else { Err(format!("answered {}", res.status)) }
+        if res.status == 404 || res.text().contains(NOT_FOUND_TEXT) {
+            Ok(format!("RFI {rfi} under project {q}: not found"))
+        } else {
+            Err(format!("answered {}", res.status))
+        }
     });
 }
 
@@ -1005,12 +1046,22 @@ fn safety_stories(run: &mut Run, ctx: &mut Ctx) {
     }
     let seen = ctx.log.borrow().clone();
     run.check("safety", "every answer carries the security headers", Tag::Smoke, || {
-        let bad: Vec<String> = seen.iter().filter(|s| !s.missing.is_empty()).map(|s| format!("{} {} lacks {}", s.method, s.path, s.missing.join(", "))).collect();
-        if bad.is_empty() { Ok(format!("{} answers checked", seen.len())) } else { Err(format!("{}: {}", bad.len(), bad.iter().take(20).cloned().collect::<Vec<_>>().join("; "))) }
+        let bad: Vec<String> =
+            seen.iter().filter(|s| !s.missing.is_empty()).map(|s| format!("{} {} lacks {}", s.method, s.path, s.missing.join(", "))).collect();
+        if bad.is_empty() {
+            Ok(format!("{} answers checked", seen.len()))
+        } else {
+            Err(format!("{}: {}", bad.len(), bad.iter().take(20).cloned().collect::<Vec<_>>().join("; ")))
+        }
     });
     run.check("safety", "no answer shows panic text, a stack trace, a source location or a secret", Tag::Smoke, || {
-        let bad: Vec<String> = seen.iter().filter(|s| !s.leaks.is_empty()).map(|s| format!("{} {} ({}) {}", s.method, s.path, s.who, s.leaks.join(", "))).collect();
-        if bad.is_empty() { Ok(format!("{} answers checked", seen.len())) } else { Err(format!("{}: {}", bad.len(), bad.iter().take(20).cloned().collect::<Vec<_>>().join("; "))) }
+        let bad: Vec<String> =
+            seen.iter().filter(|s| !s.leaks.is_empty()).map(|s| format!("{} {} ({}) {}", s.method, s.path, s.who, s.leaks.join(", "))).collect();
+        if bad.is_empty() {
+            Ok(format!("{} answers checked", seen.len()))
+        } else {
+            Err(format!("{}: {}", bad.len(), bad.iter().take(20).cloned().collect::<Vec<_>>().join("; ")))
+        }
     });
     let secrets = ctx.secrets.borrow().clone();
     run.check("safety", "the journal holds no password, token or session cookie", Tag::Smoke, || {
@@ -1040,14 +1091,18 @@ fn restart_stories(run: &mut Run, ctx: &mut Ctx) {
     let was_running = first.stop();
     let log = first.log_text();
     let secrets = ctx.secrets.borrow().clone();
-    run.check("boot", "the server was still running at the end of the run", Tag::Smoke, || if was_running { Ok("yes".to_string()) } else { Err("it had stopped".to_string()) });
+    run.check("boot", "the server was still running at the end of the run", Tag::Smoke, || {
+        if was_running { Ok("yes".to_string()) } else { Err("it had stopped".to_string()) }
+    });
     server_log_checks(run, &log, &secrets, "first run");
     if !run.wants(Tag::Release) {
         return;
     }
     let (bin, data) = (ctx.bin.clone(), ctx.data.clone());
     let data_s = data.to_string_lossy().into_owned();
-    run.check("data", "`buildkiosk check` replays every journal after the run", Tag::Release, || server::cli(&bin, &["check", "--data", data_s.as_str()]).map(|o| o.trim().to_string()));
+    run.check("data", "`buildkiosk check` replays every journal after the run", Tag::Release, || {
+        server::cli(&bin, &["check", "--data", data_s.as_str()]).map(|o| o.trim().to_string())
+    });
     let log_path = ctx.work.join("server-2.log");
     let mut started = None;
     run.check("data", "the server starts again on the same data (behind HTTPS: --secure-cookies)", Tag::Release, || {
@@ -1074,13 +1129,19 @@ fn restart_stories(run: &mut Run, ctx: &mut Ctx) {
     });
     run.check("data", "what the run made is still there after the restart", Tag::Release, || {
         let list = c.get(&format!("/projects/{p}/rfis"));
-        if list.status == 200 && list.text().contains("QA regression: ceiling height at grid C") { Ok("the regression RFI is listed".to_string()) } else { Err(format!("RFI list answered {}", list.status)) }
+        if list.status == 200 && list.text().contains("QA regression: ceiling height at grid C") {
+            Ok("the regression RFI is listed".to_string())
+        } else {
+            Err(format!("RFI list answered {}", list.status))
+        }
     });
     if let Some(mut s) = ctx.server.take() {
         let was_running = s.stop();
         let log = s.log_text();
         let secrets = ctx.secrets.borrow().clone();
-        run.check("boot", "the restarted server was still running at the end", Tag::Release, || if was_running { Ok("yes".to_string()) } else { Err("it had stopped".to_string()) });
+        run.check("boot", "the restarted server was still running at the end", Tag::Release, || {
+            if was_running { Ok("yes".to_string()) } else { Err("it had stopped".to_string()) }
+        });
         server_log_checks(run, &log, &secrets, "after the restart");
     }
 }
@@ -1112,6 +1173,10 @@ fn upgrade_story(run: &mut Run, ctx: &Ctx) {
         let home = c.get("/");
         let project = home.text().contains("Riverside Medical Office");
         let running = s.stop();
-        if home.status == 200 && project && running { Ok(format!("from {}", version.trim())) } else { Err(format!("home {} project listed {project} running {running}", home.status)) }
+        if home.status == 200 && project && running {
+            Ok(format!("from {}", version.trim()))
+        } else {
+            Err(format!("home {} project listed {project} running {running}", home.status))
+        }
     });
 }
