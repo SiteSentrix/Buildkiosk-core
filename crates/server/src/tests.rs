@@ -238,6 +238,38 @@ async fn people_can_be_edited_and_deactivated() {
 }
 
 #[tokio::test]
+async fn timesheets_at_read_show_own_hours_without_the_log_form() {
+    // Issue #30: the Subcontractor template gives Timesheets Read, and the page answered "not found".
+    let dir = temp("timesheets-read");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    let (_, h, page) = send(&app, Request::get("/setup").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body =
+        format!("_csrf={}&name=Acme&first_name=Ada&last_name=Admin&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/setup", &anon, body)).await;
+    let ada = cookies(&h);
+    let (_, _, home) = send(&app, Request::get("/").header("cookie", &ada).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    send(&app, post("/do/project.create", &ada, format!("_csrf={csrf}&name=P"))).await;
+    send(&app, post("/do/person.create", &ada, format!("_csrf={csrf}&first_name=Bo&last_name=Builder&email=bo%40example.com&is_user=true"))).await;
+    let sub = app.lock().tenant.as_ref().unwrap().engine.state().templates.iter().find(|t| t.name == "Subcontractor").unwrap().id;
+    send(&app, post("/do/member.add", &ada, format!("_csrf={csrf}&project=1&person=2&template={sub}"))).await;
+    send(&app, post("/do/timesheet.add", &ada, format!("_csrf={csrf}&project=1&date=2026-10-13&hours=6&person=2&description=Rough-in"))).await;
+    send(&app, post("/people/2/password", &ada, format!("_csrf={csrf}&password=bo-secret-password"))).await;
+    let (_, h, page) = send(&app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let login = format!("_csrf={}&email=bo%40example.com&password=bo-secret-password", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/login", &anon, login)).await;
+    let bo = cookies(&h);
+    let (st, _, page) = send(&app, Request::get("/projects/1/timesheets?week=2026-10-12").header("cookie", &bo).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(page.contains("My hours") && page.contains("Rough-in") && page.contains("href=\"/projects/1/timesheets\""), "{page}");
+    assert!(!page.contains("Log hours") && !page.contains("Submit the week") && !page.contains("/do/timesheet."), "{page}");
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn team_permissions_can_be_changed() {
     let dir = temp("team");
     let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
