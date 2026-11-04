@@ -1,0 +1,26 @@
+BuildKiosk
+Copyright (c) 2026 The BuildKiosk contributors
+
+Licensed under either of
+  * Apache License, Version 2.0 (LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
+  * MIT license (LICENSE-MIT or http://opensource.org/licenses/MIT)
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
+work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
+
+Assets: see ASSETS.md (the screenshots in docs/images; icons and styles are generated in code).
+
+Third-party code: BuildKiosk's Rust dependencies are listed in Cargo.lock; `cargo xtask licenses`
+checks that each one is available under a permissive licence. Their licence texts ship with their
+sources on crates.io.
+
+Bundled fonts: the PDF renderer (hayro) carries the standard PDF font set (Helvetica, Times, Courier,
+Symbol and Dingbats look-alikes) extracted from PDFium, used to draw text that a PDF does not embed.
+Copyright 2014 PDFium Authors and Foxit Software Inc., BSD 3-clause licence; its text ships with the
+hayro-interpret crate (assets/LICENSE_FOXIT).
+
+Trademarks: BuildKiosk is an independent project and is not affiliated with any construction
+software vendor. Product names are trademarks of their owners. The licences above do not grant
+rights to the BuildKiosk name or logo.

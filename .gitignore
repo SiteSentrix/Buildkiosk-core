@@ -1,0 +1,16 @@
+*~
+# Local session notes and plans (see AGENTS.md › Start every session here)
+plan/
+/target
+/dist
+# Local data directories made by `buildkiosk serve` / `buildkiosk demo`
+/data
+/demo-data
+.DS_Store
+# Agent worktrees (parallel work in progress)
+/.claude/worktrees/
+# The browser sheet viewer, built by `cargo xtask viewer` (not committed)
+/crates/server/assets/viewer/
+
+# Claude Code hook state (counters, logs, STOP switch)
+/.claude/state/

@@ -1,0 +1,99 @@
+# The gate contributors run before committing: `cargo xtask ci` (fmt, clippy -D warnings including the
+# no-panic lints, tests, assets, brands, cleanroom, licenses, layers, wasm). Runs on every push to main
+# and every pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  # This repository is public. Fails on private add-on paths or crate names, private product names, keys, .env
+  # files, tokens, or a commit author other than the owner (.github/scripts/public-guard.sh), and on anything
+  # gitleaks finds in the files or the history.
+  public-guard:
+    name: public-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Guard self-test (planted files must be caught)
+        run: .github/scripts/public-guard.sh --self-test
+      - name: Guard
+        env:
+          # On a pull request check only its own commits; on main check them all.
+          GUARD_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || 'HEAD' }}
+        run: .github/scripts/public-guard.sh
+      - name: gitleaks (files and history)
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          f="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/$f" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$f"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$f" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git . --no-banner --redact -v
+          "$RUNNER_TEMP/gitleaks" dir . --no-banner --redact -v
+
+  ci:
+    name: cargo xtask ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      # The toolchain the code is checked with locally. Each Rust release adds clippy lints, so bump
+      # it on purpose and fix what the new lints flag in the same commit.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.0
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ci
+      - name: cargo xtask ci
+        run: cargo xtask ci
+
+  # The browser sheet viewer (WebAssembly): built with the generated loader, embedded in the server, and the
+  # server's viewer test run against that build.
+  viewer:
+    name: cargo xtask viewer
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.0
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: viewer
+      - name: wasm-bindgen-cli at the version in Cargo.lock
+        run: |
+          V=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"/\1/p')
+          cargo install wasm-bindgen-cli --version "$V" --locked
+      - name: cargo xtask viewer
+        run: cargo xtask viewer
+      - name: Server test with the viewer embedded
+        run: cargo test -p buildkiosk-server sheet_viewer

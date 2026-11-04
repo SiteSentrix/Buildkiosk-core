@@ -1,0 +1,475 @@
+# Builds and publishes a BuildKiosk release.
+#
+# Push a version tag that matches the workspace version in Cargo.toml (for example `v0.1.0` for version 0.1.0):
+# the full gate (`cargo xtask ci`) runs, the program is built for Linux, macOS and Windows with the browser sheet
+# viewer embedded, the Windows and macOS programs are signed (below), each archive is checksummed and given a GitHub
+# build attestation, and a GitHub release is created with the archives, SHA256SUMS and install.sh, and a
+# multi-architecture container image (Linux x86_64 and aarch64) is pushed to ghcr.io/<owner>/buildkiosk. Versions
+# below 1.0.0 (or with a `-suffix`) are marked as pre-releases. Nothing is published until a tag is pushed.
+# If a release for the tag already exists, its files are replaced by this run's.
+#
+# Signing. The jobs that sign (`sign-windows`, `sign-macos`) run in the `release` environment, which holds the signing
+# secrets and only allows the `release` branch and `v*` tags. Windows: buildkiosk.exe is signed with Azure Artifact
+# Signing. macOS (both targets): the binary is signed with the Developer ID Application certificate (hardened runtime,
+# secure timestamp) and notarized by Apple (a bare binary cannot be stapled; Gatekeeper checks the notarization
+# online). Signing happens before the archives are made, so the archives, SHA256SUMS and the build attestations all
+# cover the signed files. Linux archives are not signed (use the checksums or the attestation). Every secret is
+# optional: if one a platform needs is missing, that platform's build is unsigned and the run shows a warning; the run
+# does not fail. Any other signing failure (a rejected notarization, a bad certificate) does fail it.
+#
+# Run by hand from the Actions tab ("Run workflow") to check that everything builds. A run from `main` (or any
+# branch but `release`) is an unsigned dry run: the signing jobs are skipped (and the environment would refuse them),
+# the archives are uploaded as workflow artifacts, the container image is built without being pushed, and nothing is
+# published. Run it from the `release` branch to try the signing without publishing.
+name: Release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  # Same toolchain as ci.yml; bump both on purpose.
+  RUST_TOOLCHAIN: 1.97.0
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+      sign: ${{ steps.v.outputs.sign }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n '/^\[workspace\.package\]/,/^\[/{s/^version = "\(.*\)"/\1/p}' Cargo.toml | head -n 1)
+          [ -n "$version" ] || { echo "could not read the workspace version from Cargo.toml"; exit 1; }
+          publish=false
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+              echo "the tag is $GITHUB_REF_NAME but Cargo.toml says version $version: bump the version first (the tag must be v$version)"
+              exit 1
+            fi
+            publish=true
+          fi
+          # The signing jobs only run where the `release` environment allows them: a version tag or the release branch.
+          sign=false
+          if [ "$publish" = "true" ] || [ "$GITHUB_REF" = "refs/heads/release" ]; then sign=true; fi
+          prerelease=false
+          case "$version" in 0.* | *-*) prerelease=true ;; esac
+          {
+            echo "version=$version"
+            echo "publish=$publish"
+            echo "prerelease=$prerelease"
+            echo "sign=$sign"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing $version (publish=$publish, sign=$sign, prerelease=$prerelease)"
+
+  # The release is only built from code that passes the same gate as every commit.
+  gate:
+    name: cargo xtask ci
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ci
+      - run: cargo xtask ci
+
+  # The sheet viewer (Rust to WebAssembly plus the generated loader) is built once; each platform embeds it.
+  viewer:
+    name: Sheet viewer
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: viewer
+      - name: wasm-bindgen-cli at the version in Cargo.lock
+        run: |
+          V=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"/\1/p')
+          cargo install wasm-bindgen-cli --version "$V" --locked
+      - run: cargo xtask viewer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: viewer
+          path: crates/server/assets/viewer
+          if-no-files-found: error
+
+  # Compile every target. The binaries go to the signing jobs (Windows, macOS) or straight to packaging (Linux); no
+  # secrets are used here.
+  build:
+    name: Build ${{ matrix.target }}
+    needs: [version, viewer]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux builds are static (musl): they run on any distribution.
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm }
+          - { target: x86_64-apple-darwin, os: macos-15-intel }
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+    env:
+      TARGET: ${{ matrix.target }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - name: musl C compiler (for the few C parts of dependencies)
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          echo "CC_${TARGET//-/_}=musl-gcc" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        with:
+          name: viewer
+          path: crates/server/assets/viewer
+      - name: Build
+        run: cargo build --release --locked -p buildkiosk --target "$TARGET"
+      - name: Collect the binary
+        run: |
+          set -euo pipefail
+          exe=buildkiosk
+          if [[ "$TARGET" == *windows* ]]; then exe=buildkiosk.exe; fi
+          mkdir -p bin
+          cp "target/$TARGET/release/$exe" bin/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: bin/*
+          if-no-files-found: error
+
+  # Signs buildkiosk.exe with Azure Artifact Signing, in the `release` environment (which holds the secrets). Without
+  # the six AZURE_* secrets the binary passes through unsigned, with a warning.
+  sign-windows:
+    name: Sign Windows
+    needs: [version, build]
+    if: needs.version.outputs.sign == 'true'
+    runs-on: windows-latest
+    environment: release
+    timeout-minutes: 30
+    env:
+      TARGET: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bin-${{ env.TARGET }}
+          path: bin
+      - id: have
+        name: Are the signing secrets set?
+        shell: bash
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_CERT_PROFILE: ${{ secrets.AZURE_CERT_PROFILE }}
+        run: |
+          missing=()
+          for v in AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET AZURE_SIGNING_ENDPOINT AZURE_SIGNING_ACCOUNT AZURE_CERT_PROFILE; do
+            [ -n "${!v:-}" ] || missing+=("$v")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::warning::Windows signing secrets not set (${missing[*]}): buildkiosk.exe is NOT signed"
+            echo "signing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "signing=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Pinned to a commit (v2.0.0): this step handles the signing credentials.
+      - name: Sign buildkiosk.exe
+        if: steps.have.outputs.signing == 'true'
+        uses: azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE }}
+          files: ${{ github.workspace }}\bin\buildkiosk.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          description: BuildKiosk
+      - name: Check the signature
+        if: steps.have.outputs.signing == 'true'
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature bin\buildkiosk.exe
+          $sig | Format-List Status, StatusMessage, SignerCertificate, TimeStamperCertificate
+          if ($sig.Status -ne 'Valid') { throw "buildkiosk.exe signature is $($sig.Status): $($sig.StatusMessage)" }
+          if (-not $sig.TimeStamperCertificate) { throw 'buildkiosk.exe signature has no timestamp' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ env.TARGET }}
+          path: bin/*
+          if-no-files-found: error
+
+  # Signs and notarizes the macOS binaries (see contrib/macos/sign.sh), in the `release` environment. Without the APPLE_*
+  # secrets the binary passes through unsigned, with a warning. Signing needs a Mac, not a particular architecture.
+  sign-macos:
+    name: Sign ${{ matrix.target }}
+    needs: [version, build]
+    if: needs.version.outputs.sign == 'true'
+    runs-on: macos-latest
+    environment: release
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: bin
+      - name: Sign and notarize
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: contrib/macos/sign.sh bin/buildkiosk
+      - name: Remove the temporary keychain
+        if: always()
+        run: security delete-keychain "${RUNNER_TEMP}/buildkiosk-signing.keychain-db" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-${{ matrix.target }}
+          path: bin/*
+          if-no-files-found: error
+
+  # Makes the archive for each target from the signed binary (Windows, macOS) or the plain one, checks that it starts,
+  # and uploads it. Runs even where the signing jobs were skipped (a dry run from main); fails if one of them failed.
+  package:
+    name: Package ${{ matrix.target }}
+    needs: [version, build, sign-windows, sign-macos]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-latest, ext: tar.gz }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, ext: tar.gz }
+          - { target: x86_64-apple-darwin, os: macos-15-intel, ext: tar.gz, signed: true }
+          - { target: aarch64-apple-darwin, os: macos-latest, ext: tar.gz, signed: true }
+          - { target: x86_64-pc-windows-msvc, os: windows-latest, ext: zip, signed: true }
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TARGET: ${{ matrix.target }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: bin
+      # Replaces the plain binary with the signed one. The signing jobs always upload a file (unsigned, with a warning,
+      # when their secrets are missing).
+      - name: Use the signed binary
+        if: matrix.signed && needs.version.outputs.sign == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-${{ matrix.target }}
+          path: bin
+      - name: Package
+        run: |
+          set -euo pipefail
+          exe=buildkiosk
+          if [ "${{ matrix.ext }}" = "zip" ]; then exe=buildkiosk.exe; fi
+          chmod +x "bin/$exe"
+          name="buildkiosk-$VERSION-$TARGET"
+          mkdir -p "dist/$name"
+          cp "bin/$exe" "dist/$name/"
+          cp LICENSE-MIT LICENSE-APACHE NOTICE README.md contrib/buildkiosk.service "dist/$name/"
+          cd dist
+          if [ "${{ matrix.ext }}" = "zip" ]; then
+            7z a -tzip "$name.zip" "$name" > /dev/null
+          else
+            tar -czf "$name.tar.gz" "$name"
+          fi
+          rm -rf "$name"
+          ls -l
+      # The program built here has to start and work on the machine that built it: version, a demo company, and a
+      # replay of its journal.
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          cd dist
+          name="buildkiosk-$VERSION-$TARGET"
+          if [ "${{ matrix.ext }}" = "zip" ]; then 7z x -y "$name.zip" > /dev/null; exe=buildkiosk.exe; else tar -xzf "$name.tar.gz"; exe=buildkiosk; fi
+          "./$name/$exe" version | grep -x "buildkiosk $VERSION"
+          "./$name/$exe" demo --data "$RUNNER_TEMP/smoke" > /dev/null
+          "./$name/$exe" check --data "$RUNNER_TEMP/smoke"
+          rm -rf "$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: [version, gate, package]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+      id-token: write # sign the build attestation
+      attestations: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum buildkiosk-* > SHA256SUMS
+          cat SHA256SUMS
+      # People can check that the files were built by this workflow from this repository:
+      #   gh attestation verify buildkiosk-<version>-<target>.tar.gz --repo bwattendorf/Buildkiosk-core
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/buildkiosk-*
+      - name: Create the release
+        run: |
+          set -euo pipefail
+          cp install.sh dist/install.sh
+          flags=(--title "BuildKiosk $VERSION" --generate-notes --verify-tag)
+          if [ "${{ needs.version.outputs.prerelease }}" = "true" ]; then flags+=(--prerelease); fi
+          # A release for this tag may already exist (for instance one made by hand from the releases page): then add
+          # the files to it, replacing any with the same name. Its title, notes and pre-release flag are left alone.
+          gh release create "$GITHUB_REF_NAME" dist/* "${flags[@]}" \
+            || gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+
+  # The container image holds the Linux binaries built above, so it runs exactly what the archives contain.
+  image:
+    name: Container image
+    needs: [version, package]
+    # Not the default `success()`: that is false when any job further up the chain was skipped, and the signing jobs
+    # are skipped in a dry run. The image is still built then (it is only pushed for a tag).
+    if: ${{ !cancelled() && needs.package.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io
+      id-token: write # sign the build attestation
+      attestations: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*-linux-musl
+          merge-multiple: true
+          path: dist
+      - name: Build context
+        run: |
+          set -euo pipefail
+          for pair in amd64:x86_64 arm64:aarch64; do
+            arch=${pair%%:*}; target=${pair##*:}-unknown-linux-musl
+            name="buildkiosk-$VERSION-$target"
+            mkdir -p "ctx/$arch"
+            tar -xzf "dist/$name.tar.gz" --strip-components=1 -C "ctx/$arch" "$name/buildkiosk"
+          done
+          cp contrib/docker/Dockerfile ctx/Dockerfile
+          ls -lR ctx
+      - id: meta
+        name: Image name and tags
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          tags="$image:$VERSION"
+          # `latest` follows stable releases only.
+          if [ "${{ needs.version.outputs.prerelease }}" != "true" ]; then tags="$tags,$image:latest"; fi
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: needs.version.outputs.publish == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      # The image for this runner's architecture has to start and work before anything is pushed.
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          docker buildx build --load --platform linux/amd64 -t buildkiosk:test ctx
+          docker run --rm buildkiosk:test version | grep -x "buildkiosk $VERSION"
+          docker run --rm -v "$RUNNER_TEMP/image-smoke:/data" --user root buildkiosk:test demo --data /data/demo > /dev/null
+          docker run --rm -v "$RUNNER_TEMP/image-smoke:/data" --user root buildkiosk:test check --data /data/demo
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ctx
+          platforms: linux/amd64,linux/arm64
+          push: ${{ needs.version.outputs.publish == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ needs.version.outputs.version }}
+            org.opencontainers.image.licenses=MIT OR Apache-2.0
+      - uses: actions/attest-build-provenance@v2
+        if: needs.version.outputs.publish == 'true'
+        with:
+          subject-name: ${{ steps.meta.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

@@ -1,0 +1,45 @@
+[package]
+name = "buildkiosk-server"
+description = "The HTTP server: sessions, CSRF protection, the form handler, the JSON API and static files."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+buildkiosk-core = { workspace = true }
+buildkiosk-engine = { workspace = true }
+buildkiosk-mcp = { workspace = true }
+roxmltree = { workspace = true }
+lopdf = { version = "0.46", default-features = false }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+futures-util = { version = "0.3", default-features = false }
+hayro = "0.8"
+ureq = { version = "2", default-features = false, features = ["tls"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "builder", "hostname", "rustls-tls"] }
+buildkiosk-store = { workspace = true }
+buildkiosk-web = { workspace = true }
+axum = { workspace = true }
+maud = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
+base64 = { workspace = true }
+
+[build-dependencies]
+roxmltree = { workspace = true }
+lopdf = { version = "0.46", default-features = false }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+buildkiosk-testkit = { workspace = true }
+
+[lints]
+workspace = true
