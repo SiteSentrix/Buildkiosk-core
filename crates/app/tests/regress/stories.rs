@@ -1233,27 +1233,38 @@ fn workflow_stories(run: &mut Run, ctx: &mut Ctx) {
         }
     });
     let Ok(admin) = user(&mut ctx.users, "admin") else { return };
-    for (tool, prefix) in [("change-orders", "commitment_change"), ("prime-change-orders", "prime_change")] {
+    // A prime change order needs an approved prime contract, so that goes first (its own create → approve).
+    let docs = [
+        ("change-orders", "commitment_change", "commitment change order"),
+        ("prime-contracts", "prime_contract", "prime contract"),
+        ("prime-change-orders", "prime_change", "prime change order"),
+    ];
+    for (tool, prefix, noun) in docs {
         let base = format!("/projects/{p}/{tool}");
-        run.check("loops", &format!("{tool}: create, approve (journal checked)"), Tag::Release, || {
-            let n = journal_len(&data);
-            let set = [
-                ("title", "QA regression: added blocking at door 12"),
-                ("commitment", html::FIRST),
-                ("contract", html::FIRST),
-                ("lines.0.cost_code", html::FIRST),
-                ("lines.0.description", "Blocking at door 12"),
-                ("lines.0.amount", "1250.00"),
-            ];
-            let loc = submit(admin, &format!("{base}/new"), "", &set, None)?;
-            journaled(&data, n, &format!("{prefix}.")).map_err(|e| format!("{e}, after the form went to {loc}"))?;
-            let id = id_after(&loc, &format!("/{tool}/")).ok_or_else(|| format!("created, but no id in {loc}"))?;
-            let here = format!("{base}/{id}");
-            let approve = format!("{prefix}.approve");
-            press_step(admin, &data, &here, &[approve.as_str()])?;
-            Ok(format!("{tool} {id}: create → {approve}"))
+        run.check("loops", &format!("{noun}: create with a line, approve (journal checked)"), Tag::Release, || {
+            let id = create_and_approve(admin, &data, &base, tool, prefix)?;
+            Ok(format!("{tool} {id}: create → {prefix}.approve"))
         });
     }
+}
+
+/// Creates a cost document with one line from its "new" page and approves it; its id.
+fn create_and_approve(c: &mut Client, data: &Path, base: &str, tool: &str, prefix: &str) -> Result<u64, String> {
+    let n = journal_len(data);
+    let set = [
+        ("title", "QA regression: added blocking at door 12"),
+        ("commitment", html::FIRST),
+        ("contract", html::FIRST),
+        ("lines.0.cost_code", html::FIRST),
+        ("lines.0.description", "Blocking at door 12"),
+        ("lines.0.amount", "1250.00"),
+    ];
+    let loc = submit(c, &format!("{base}/new"), "", &set, None)?;
+    journaled(data, n, &format!("{prefix}.")).map_err(|e| format!("{e}, after the form went to {loc}"))?;
+    let id = id_after(&loc, &format!("/{tool}/")).ok_or_else(|| format!("created, but no id in {loc}"))?;
+    let approve = format!("{prefix}.approve");
+    press_step(c, data, &format!("{base}/{id}"), &[approve.as_str()])?;
+    Ok(id)
 }
 
 // -- imports: CSV files and the schedule exchange (.xer) file
