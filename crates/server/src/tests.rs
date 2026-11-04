@@ -238,6 +238,38 @@ async fn people_can_be_edited_and_deactivated() {
 }
 
 #[tokio::test]
+async fn timesheets_at_read_show_own_hours_without_the_log_form() {
+    // Issue #30: the Subcontractor template gives Timesheets Read, and the page answered "not found".
+    let dir = temp("timesheets-read");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    let (_, h, page) = send(&app, Request::get("/setup").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body =
+        format!("_csrf={}&name=Acme&first_name=Ada&last_name=Admin&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/setup", &anon, body)).await;
+    let ada = cookies(&h);
+    let (_, _, home) = send(&app, Request::get("/").header("cookie", &ada).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    send(&app, post("/do/project.create", &ada, format!("_csrf={csrf}&name=P"))).await;
+    send(&app, post("/do/person.create", &ada, format!("_csrf={csrf}&first_name=Bo&last_name=Builder&email=bo%40example.com&is_user=true"))).await;
+    let sub = app.lock().tenant.as_ref().unwrap().engine.state().templates.iter().find(|t| t.name == "Subcontractor").unwrap().id;
+    send(&app, post("/do/member.add", &ada, format!("_csrf={csrf}&project=1&person=2&template={sub}"))).await;
+    send(&app, post("/do/timesheet.add", &ada, format!("_csrf={csrf}&project=1&date=2026-10-13&hours=6&person=2&description=Rough-in"))).await;
+    send(&app, post("/people/2/password", &ada, format!("_csrf={csrf}&password=bo-secret-password"))).await;
+    let (_, h, page) = send(&app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let login = format!("_csrf={}&email=bo%40example.com&password=bo-secret-password", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/login", &anon, login)).await;
+    let bo = cookies(&h);
+    let (st, _, page) = send(&app, Request::get("/projects/1/timesheets?week=2026-10-12").header("cookie", &bo).body(Body::empty()).unwrap()).await;
+    assert_eq!(st, StatusCode::OK);
+    assert!(page.contains("My hours") && page.contains("Rough-in") && page.contains("href=\"/projects/1/timesheets\""), "{page}");
+    assert!(!page.contains("Log hours") && !page.contains("Submit the week") && !page.contains("/do/timesheet."), "{page}");
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
 async fn team_permissions_can_be_changed() {
     let dir = temp("team");
     let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
@@ -1308,7 +1340,7 @@ async fn documents_upload_versions_and_download() {
     let (_, _, found) = send(&app, get("/projects/1/documents?q=plan")).await;
     assert!(found.contains("Plan set"));
     let (st, ..) = send(&app, get("/projects/1/documents/99")).await;
-    assert_eq!(st, StatusCode::OK, "pages answer not-found inside the page");
+    assert_eq!(st, StatusCode::NOT_FOUND, "a missing document shows the not-found page with 404 (issue #22)");
 
     // Several files at once, a zip of the folder, moving a folder, and the deleted-files page.
     let many = |token: &str| {
@@ -4925,6 +4957,184 @@ async fn each_host_gets_its_own_company_and_cookies_do_not_cross() {
     drop(pages);
     drop(tenants);
     drop(data);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+// -- the public route list (`route_patterns`)
+
+#[tokio::test]
+async fn the_route_list_matches_the_router() {
+    let list = route_patterns();
+    assert!(list.len() > 100, "only {} routes listed", list.len());
+    let mut seen = std::collections::HashSet::new();
+    for r in &list {
+        assert!(seen.insert(r.path.as_str()), "{} is listed twice", r.path);
+        assert!(!r.methods.is_empty(), "{} has no methods", r.path);
+    }
+    for (path, method) in [("/login", "POST"), ("/projects/{id}/rfis/{rid}", "GET"), ("/mcp", "DELETE"), ("/bid/{token}", "GET")] {
+        assert!(list.iter().any(|r| r.path == path && r.methods.contains(&method)), "{method} {path} is missing");
+    }
+
+    // Every listed route is served by the router: a method no route accepts gets "method not allowed" (not the
+    // fallback's "not found"), and the methods the router allows are the ones listed.
+    let dir = temp("route-list");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    for r in &list {
+        let uri: String = r.path.split('/').map(|seg| if seg.starts_with('{') { "1" } else { seg }).collect::<Vec<_>>().join("/");
+        let (st, h, _) = send(&app, Request::put(uri.as_str()).body(Body::empty()).unwrap()).await;
+        assert_eq!(st, StatusCode::METHOD_NOT_ALLOWED, "{} is not served by the router", r.path);
+        let allow = h.get(axum::http::header::ALLOW).and_then(|v| v.to_str().ok()).unwrap_or_default().to_owned();
+        let allowed: Vec<&str> = allow.split(',').map(str::trim).collect();
+        for m in &r.methods {
+            assert!(allowed.contains(m), "{} lists {m} but the router allows {allow}", r.path);
+        }
+    }
+    // A path that isn't listed goes to the fallback instead (here, before first-run setup, a redirect to it).
+    assert_ne!(send(&app, Request::put("/no/such/page").body(Body::empty()).unwrap()).await.0, StatusCode::METHOD_NOT_ALLOWED);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn refused_and_missing_pages_answer_404_not_200() {
+    // Issue #22: the "not found" page used to come back with status 200.
+    let dir = temp("notfound");
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), None).unwrap());
+    let (_, h, page) = send(&app, Request::get("/setup").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let body =
+        format!("_csrf={}&name=Acme&first_name=Ada&last_name=Admin&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/setup", &anon, body)).await;
+    let ada = cookies(&h);
+    let (_, _, home) = send(&app, Request::get("/").header("cookie", &ada).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    send(&app, post("/do/project.create", &ada, format!("_csrf={csrf}&name=P"))).await;
+    send(
+        &app,
+        post("/do/person.create", &ada, format!("_csrf={csrf}&_next=/directory&first_name=Bo&last_name=Builder&email=bo%40example.com&is_user=true")),
+    )
+    .await;
+    send(&app, post("/people/2/password", &ada, format!("_csrf={csrf}&password=bo-secret-password"))).await;
+    let (_, h, page) = send(&app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let anon = cookies(&h);
+    let login = format!("_csrf={}&email=bo%40example.com&password=bo-secret-password", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/login", &anon, login)).await;
+    let bo = cookies(&h);
+    let get_as = |cookie: &str, path: &str| Request::get(path).header("cookie", cookie).body(Body::empty()).unwrap();
+
+    // Pages that exist and may be opened still answer 200.
+    for path in ["/", "/projects/1", "/settings"] {
+        let (st, _, body) = send(&app, get_as(&ada, path)).await;
+        assert_eq!(st, StatusCode::OK, "{path}");
+        assert!(!buildkiosk_web::pages::is_not_found(&body), "{path}");
+    }
+    // A record that doesn't exist, a project that doesn't exist, and a company page a non-admin may not open.
+    for (who, path) in [(&ada, "/projects/1/rfis/99999999"), (&ada, "/projects/99999999"), (&bo, "/settings"), (&bo, "/projects/1")] {
+        let (st, h, body) = send(&app, get_as(who, path)).await;
+        assert_eq!(st, StatusCode::NOT_FOUND, "{path}");
+        assert!(body.contains("That page doesn't exist, or you don't have access to it."), "{path}");
+        assert_eq!(h.get(CONTENT_TYPE).unwrap().to_str().unwrap(), "text/html; charset=utf-8", "{path}");
+    }
+    // An unknown address still answers 404 with the same page.
+    assert_eq!(send(&app, get_as(&ada, "/no/such/page")).await.0, StatusCode::NOT_FOUND);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+// -- a host's command guard (`App::with_command_guard`) and closing a company (`Tenants::remove`)
+
+/// Refuses every new project, as a host's plan limit would.
+struct NoNewProjects;
+
+impl buildkiosk_engine::CommandGuard for NoNewProjects {
+    fn check(&self, _company: &str, _state: &CompanyState, _actor: Actor, command: &str, _params: &Value) -> Result<(), String> {
+        if command == "project.create" { Err("Your plan allows no more projects.".into()) } else { Ok(()) }
+    }
+}
+
+#[tokio::test]
+async fn a_command_guard_refuses_from_every_entry_point() {
+    let dir = temp("command-guard");
+    let data = DataDir::open(&dir).unwrap();
+    make_company(&data, "guarded", "Guarded Co", "ada@example.com", "correct-horse-battery");
+    drop(data);
+    let app = Arc::new(App::open(DataDir::open(&dir).unwrap(), Some("guarded")).unwrap().with_command_guard(Arc::new(NoNewProjects)));
+    let projects = |app: &Shared| app.lock().tenant.as_ref().unwrap().engine.state().projects.len();
+
+    // A page form: the refusal comes back as the error message.
+    let (_, h, page) = send(&app, Request::get("/login").body(Body::empty()).unwrap()).await;
+    let login = format!("_csrf={}&email=ada%40example.com&password=correct-horse-battery", field(&page, "_csrf"));
+    let (_, h, _) = send(&app, post("/login", &cookies(&h), login)).await;
+    let session = cookies(&h);
+    let (_, _, home) = send(&app, Request::get("/").header("cookie", &session).body(Body::empty()).unwrap()).await;
+    let csrf = field(&home, "_csrf");
+    let (st, h, _) = send(&app, post("/do/project.create", &session, format!("_csrf={csrf}&_next=/&name=Tower+One"))).await;
+    let to = h.get(LOCATION).unwrap().to_str().unwrap();
+    assert!(st == StatusCode::SEE_OTHER && to.contains("error=") && to.contains("plan"), "{st} {to}");
+    assert_eq!(projects(&app), 0);
+
+    // The HTTP API: 403 with the guard's message.
+    let token = {
+        let mut inner = app.lock();
+        let person = inner.tenant.as_ref().unwrap().engine.state().people.iter().find(|p| p.is_user).unwrap().id.raw();
+        let t = inner.creds.create_token(person, "agent", Timestamp::from_millis(now_ms())).unwrap();
+        inner.tenant.as_ref().unwrap().store.save_credentials(&inner.creds).unwrap();
+        t
+    };
+    let api = Request::post("/api/v1/commands/project.create")
+        .header("authorization", format!("Bearer {token}"))
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"name": "Tower Two"}"#))
+        .unwrap();
+    let (st, _, body) = send(&app, api).await;
+    assert!(st == StatusCode::FORBIDDEN && body.contains("forbidden") && body.contains("Your plan allows no more projects."), "{st} {body}");
+    // Queries still answer.
+    let list = Request::post("/api/v1/commands/project.list").header("authorization", format!("Bearer {token}")).body(Body::empty()).unwrap();
+    assert_eq!(send(&app, list).await.0, StatusCode::OK);
+
+    // MCP: an error result.
+    let call = r#"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"project_create","arguments":{"name":"Tower Three"}}}"#;
+    let rpc =
+        Request::post("/mcp").header("content-type", "application/json").header("authorization", format!("Bearer {token}")).body(Body::from(call));
+    let (_, _, body) = send(&app, rpc.unwrap()).await;
+    assert!(body.contains("\"isError\":true") && body.contains("Your plan allows no more projects."), "{body}");
+    assert_eq!(projects(&app), 0);
+    drop(app);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn a_closed_company_stops_its_jobs_and_opens_again() {
+    let dir = temp("tenants-remove");
+    let data = Arc::new(DataDir::open(&dir).unwrap());
+    make_company(&data, "north", "North Builders", "ada@north.example.com", "north-password-1");
+    let shared = data.clone();
+    let open: Opener = Box::new(move |slug: &str| {
+        if !shared.companies().map_err(|e| e.to_string())?.iter().any(|s| s == slug) {
+            return Ok(None);
+        }
+        App::open_shared(shared.clone(), Some(slug))?.with_company_secret().map(Some)
+    });
+    let tenants = Arc::new(Tenants::new(Box::new(FirstLabel), Some(open)));
+    tenants.start_jobs();
+    let pages = tenants.clone().into_router();
+    let north = Some("north.example.test");
+
+    assert!(tenants.remove("north").is_none(), "not open yet");
+    assert_eq!(send_via(&pages, north, Request::get("/login").body(Body::empty()).unwrap()).await.0, StatusCode::OK);
+    let first = tenants.get("north").unwrap();
+    assert!(!first.jobs.lock().unwrap().is_empty(), "its timed work runs");
+
+    let closed = tenants.remove("north").unwrap();
+    assert!(Arc::ptr_eq(&first, &closed));
+    assert!(closed.jobs.lock().unwrap().is_empty(), "its timed work stopped");
+    assert!(tenants.get("north").is_none());
+
+    // The next request opens it again, fresh from disk.
+    assert_eq!(send_via(&pages, north, Request::get("/login").body(Body::empty()).unwrap()).await.0, StatusCode::OK);
+    let again = tenants.get("north").unwrap();
+    assert!(!Arc::ptr_eq(&first, &again));
+    drop((first, closed, again, pages, tenants));
     let _ = std::fs::remove_dir_all(&dir);
 }
 

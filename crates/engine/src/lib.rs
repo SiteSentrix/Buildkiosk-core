@@ -132,11 +132,32 @@ impl EngineError {
 
 pub type Result<T> = std::result::Result<T, EngineError>;
 
+/// A host's own check before every command that can change something (plan limits, a read-only mode…), whatever
+/// the entry point: web pages, the HTTP API, MCP, the CLI. Queries don't ask it. It runs after the permission check;
+/// `Err(message)` refuses the command with [`EngineError::Forbidden`] (HTTP 403, the error message on a page,
+/// `isError` in MCP) and nothing changes. Like a command, it must not panic (a panic is reported as an internal
+/// error and the command doesn't run).
+pub trait CommandGuard: Send + Sync {
+    /// `company` is the company's slug; `command` the command id (`project.create`).
+    fn check(&self, company: &str, state: &CompanyState, actor: Actor, command: &str, params: &Value) -> std::result::Result<(), String>;
+}
+
+/// The guard an engine asks, if any (none by default: every command may run).
+#[derive(Clone, Default)]
+struct GuardSlot(Option<std::sync::Arc<dyn CommandGuard>>);
+
+impl std::fmt::Debug for GuardSlot {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(if self.0.is_some() { "CommandGuard" } else { "none" })
+    }
+}
+
 /// One company's state and the sequence number of the last journal entry applied to it.
 #[derive(Clone, Debug, Default)]
 pub struct Engine {
     state: CompanyState,
     seq: u64,
+    guard: GuardSlot,
 }
 
 impl Engine {
@@ -146,7 +167,12 @@ impl Engine {
 
     /// An engine over a state loaded from a snapshot taken after journal entry `seq`.
     pub fn from_state(state: CompanyState, seq: u64) -> Engine {
-        Engine { state, seq }
+        Engine { state, seq, guard: GuardSlot::default() }
+    }
+
+    /// Sets (or with `None` removes) the [`CommandGuard`] asked before every command that can change something.
+    pub fn set_command_guard(&mut self, guard: Option<std::sync::Arc<dyn CommandGuard>>) {
+        self.guard = GuardSlot(guard);
     }
 
     pub fn state(&self) -> &CompanyState {
@@ -177,6 +203,12 @@ impl Engine {
                 guard::catch_panic(|| q(&view, &p)).map_err(|msg| EngineError::Internal { cmd: spec.id.to_string(), msg })?
             }
             Run::Mutate(m) => {
+                if let Some(host) = &self.guard.0 {
+                    let company = self.state.company().map(|c| c.slug.as_str()).unwrap_or_default();
+                    guard::catch_panic(|| host.check(company, &self.state, actor, spec.id, params))
+                        .map_err(|msg| EngineError::Internal { cmd: spec.id.to_string(), msg })?
+                        .map_err(EngineError::Forbidden)?;
+                }
                 let mut next = self.state.clone();
                 let value = {
                     let mut ctx = Ctx { state: &mut next, actor, at, cmd: spec.id };

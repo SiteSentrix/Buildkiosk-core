@@ -22,6 +22,7 @@ buildkiosk-web = { path = "crates/web" }
 buildkiosk-server = { path = "crates/server" }
 buildkiosk-mcp = { path = "crates/mcp" }
 buildkiosk-testkit = { path = "crates/testkit" }
+buildkiosk-regress-kit = { path = "crates/regress-kit" }
 
 # foundation
 roxmltree = "0.20"
