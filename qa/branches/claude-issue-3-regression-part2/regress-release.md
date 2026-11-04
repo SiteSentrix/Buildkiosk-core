@@ -1,14 +1,10 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-04T03:27:16Z · commit 116da82ae63a · release suite · 2 s
+Generated 2026-11-04T03:35:26Z · commit 58d32ef3f399 · release suite · 4 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
-**Gate: FAIL.** 95 passed, 1 failed, 6 known (quarantined, filed), 1 skipped.
-
-## What fails the gate
-
-- FAIL loops › prime-change-orders: create, approve (journal checked)
+**Gate: PASS.** 97 passed, 0 failed, 6 known (quarantined, filed), 1 skipped.
 
 ## New failures since the last run
 
@@ -25,7 +21,7 @@ No earlier report to compare with.
 | data | 3 | 0 | 0 | 0 |
 | exports | 2 | 0 | 0 | 0 |
 | imports | 6 | 0 | 0 | 0 |
-| loops | 7 | 1 | 0 | 0 |
+| loops | 9 | 0 | 0 | 0 |
 | projects | 1 | 0 | 0 | 0 |
 | routes | 7 | 0 | 0 | 0 |
 | safety | 10 | 0 | 0 | 0 |
@@ -39,26 +35,26 @@ No earlier report to compare with.
 
 | Check | Time |
 |---|---|
-| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.0 s |
+| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.7 s |
+| routes › admin: made-up and malformed ids never cause a server error | 0.2 s |
+| boot › the demo company is created from the command line | 0.2 s |
 | sign-in › repeated wrong passwords are slowed down | 0.1 s |
-| routes › admin: made-up and malformed ids never cause a server error | 0.1 s |
 | boot › the server starts on a free port and answers | 0.1 s |
 | data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
-| boot › the demo company is created from the command line | 0.1 s |
 | uploads › a file over 25 MB is refused without a server error | 0.1 s |
-| routes › admin: every page in the route table answers without a server error | 0.0 s |
+| routes › admin: every page in the route table answers without a server error | 0.1 s |
 
-## Slowest requests (of 5481)
+## Slowest requests (of 5487)
 
 | Request | Status | Time |
 |---|---|---|
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (admin) | 303 | 0.0 s |
+| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /projects/2/action-plans/1/upload (admin) | 303 | 0.0 s |
-| POST /projects/2/drawings/9/upload (admin) | 303 | 0.0 s |
 | POST /login (project manager) | 303 | 0.0 s |
 | POST /projects/2/bidding/1/upload (admin) | 303 | 0.0 s |
+| POST /projects/2/documents/upload (admin) | 303 | 0.0 s |
 | POST /login (anonymous) | 401 | 0.0 s |
 
 ## Every check
@@ -66,9 +62,9 @@ No earlier report to compare with.
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-7592/data. |
+| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-7754/data. |
 | boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:38081 |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:35835 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
@@ -80,13 +76,13 @@ No earlier report to compare with.
 | sign-in | a wrong password is refused | @smoke | pass | 0.0 s | 401 |
 | safety | a sign-in without the form token is refused (CSRF) | @smoke | pass | 0.0 s | 403 |
 | projects | the demo projects are listed on the home page | @smoke | pass | 0.0 s | projects [2, 1] |
-| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×176, 303×5, 404×53 |
-| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×174, 303×7, 404×53 |
-| routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×172, 303×7, 404×55 |
-| routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×172, 303×7, 404×55 |
-| routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×166, 303×7, 404×61 |
-| routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×169, 303×7, 404×58 |
-| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.1 s | no server errors |
+| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×176, 303×5, 404×53 |
+| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×174, 303×7, 404×53 |
+| routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×172, 303×7, 404×55 |
+| routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×172, 303×7, 404×55 |
+| routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×166, 303×7, 404×61 |
+| routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×169, 303×7, 404×58 |
+| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.2 s | no server errors |
 | access | anonymous: every private page sends the visitor to sign in | @smoke | pass | 0.0 s | 221 private pages |
 | access | subcontractor: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
 | access | owner and design team: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
@@ -132,8 +128,9 @@ No earlier report to compare with.
 | loops | punch-list: comment on an item (journal checked) | @release | pass | 0.0 s | punch 8: create → comment, shown on the page |
 | loops | observations: comment on an item (journal checked) | @release | pass | 0.0 s | observation 6: create → comment, shown on the page |
 | loops | submittal: create, send for review, reviewer approves, close (journal checked) | @release | pass | 0.0 s | submittal 6: create+open → review (approved) → close |
-| loops | change-orders: create, approve (journal checked) | @release | pass | 0.0 s | change-orders 1: create → commitment_change.approve |
-| loops | prime-change-orders: create, approve (journal checked) | @release | fail | 0.0 s | POST /projects/2/prime-change-orders/save refused: invalid parameters for `prime_change.create`: `contract` is required |
+| loops | commitment change order: create with a line, approve (journal checked) | @release | pass | 0.0 s | change-orders 1: create → commitment_change.approve |
+| loops | prime contract: create with a line, approve (journal checked) | @release | pass | 0.0 s | prime-contracts 2: create → prime_contract.approve |
+| loops | prime change order: create with a line, approve (journal checked) | @release | pass | 0.0 s | prime-change-orders 1: create → prime_change.approve |
 | exports | every CSV export downloads as CSV | @release | pass | 0.0 s | 17 exports |
 | exports | a spreadsheet formula typed into an RFI is defused in the CSV | @release | pass | 0.0 s | written as '=1+2… |
 | imports | schedule exchange file: export from one project, import into the other | @release | pass | 0.0 s | 4359 bytes round-tripped |
@@ -145,7 +142,7 @@ No earlier report to compare with.
 | uploads | a file over 25 MB is refused without a server error | @release | pass | 0.1 s | answered 303 The upload failed or the file is larger than 25 MB. |
 | uploads | a photo upload must be an image | @release | pass | 0.0 s | POST /projects/2/photos/upload refused: Photos must be JPEG, PNG, GIF or WebP pictures. |
 | safety | an uploaded web page is served as a download, never as a live page | @release | pass | 0.0 s | attachment + nosniff |
-| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.0 s | 32 upload routes refused an over-size file; no record to try: /prequalification/{vendor}/upload (no record listed on /prequalification), /projects/{id}/forms/{rid}/upload (no record listed on /projects/2/forms) |
+| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.7 s | 32 upload routes refused an over-size file; no record to try: /prequalification/{vendor}/upload (no record listed on /prequalification), /projects/{id}/forms/{rid}/upload (no record listed on /projects/2/forms) |
 | uploads | every upload route either refuses a web page or serves it back only as a download | @release | pass | 0.0 s | 32 routes; 22 took the file and serve files only as downloads; no record to try: /prequalification/{vendor}/upload (no record listed on /prequalification), /projects/{id}/forms/{rid}/upload (no record listed on /projects/2/forms) |
 | api | a command with an API token works; without one it is refused | @release | pass | 0.0 s | 200 with, 401 without |
 | api | a subcontractor's token cannot add people to the company | @release | pass | 0.0 s | 403 |
@@ -154,13 +151,13 @@ No earlier report to compare with.
 | sign-in | signing out ends the session (the old cookie no longer works) | @release | known | 0.0 s | the session cookie from before signing out still opens the home page (known: #21, until 2026-11-17: FAILS (real finding): the session cookie from before sign-out still opens every page until it expires; sign-out ends nothing on the server) |
 | access | a record opened under another project is not found | @release | pass | 0.0 s | RFI 8 under project 1: not found |
 | safety | every form post without its CSRF token is refused and changes nothing | @smoke | pass | 0.0 s | 80 post routes refused |
-| safety | every answer carries the security headers | @smoke | pass | 0.0 s | 5478 answers checked |
-| safety | no answer shows panic text, a stack trace, a source location or a secret | @smoke | pass | 0.0 s | 5478 answers checked |
-| safety | the journal holds no password, token or session cookie | @smoke | pass | 0.0 s | 206 lines |
+| safety | every answer carries the security headers | @smoke | pass | 0.0 s | 5484 answers checked |
+| safety | no answer shows panic text, a stack trace, a source location or a secret | @smoke | pass | 0.0 s | 5484 answers checked |
+| safety | the journal holds no password, token or session cookie | @smoke | pass | 0.0 s | 210 lines |
 | boot | the server was still running at the end of the run | @smoke | pass | 0.0 s | yes |
 | safety | no panics in the server log (first run) | @smoke | pass | 0.0 s | 1 log lines |
 | safety | the server log shows no password, token or session cookie (first run) | @smoke | pass | 0.0 s | clean |
-| data | `buildkiosk check` replays every journal after the run | @release | pass | 0.0 s | summit-ridge: ok, 206 journal entries; company 1, people 6, vendors 3, templates 6, projects 2, members 12, cost_codes 75, rfis 8, submittals 8, transmittals 3, correspondence 1, meetings 3, tasks 2, spec_sections 6, punch_items 11, inspection_templates 8, inspections 3, observations 8, action_plans 1, incidents 2, daily_logs 3, schedule_tasks 39, budget_lines 13, commitments 5, direct_costs 6, ch… |
+| data | `buildkiosk check` replays every journal after the run | @release | pass | 0.0 s | summit-ridge: ok, 210 journal entries; company 1, people 6, vendors 3, templates 6, projects 2, members 12, cost_codes 75, rfis 8, submittals 8, transmittals 3, correspondence 1, meetings 3, tasks 2, spec_sections 6, punch_items 11, inspection_templates 8, inspections 3, observations 8, action_plans 1, incidents 2, daily_logs 3, schedule_tasks 39, budget_lines 13, commitments 5, direct_costs 6, ch… |
 | data | the server starts again on the same data (behind HTTPS: --secure-cookies) | @release | pass | 0.1 s | started |
 | sign-in | behind HTTPS the cookies are Secure and HSTS is sent | @release | pass | 0.0 s | Secure + HSTS |
 | data | what the run made is still there after the restart | @release | pass | 0.0 s | the regression RFI is listed |
