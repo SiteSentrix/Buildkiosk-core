@@ -1,6 +1,6 @@
 # QA latest: BuildKiosk regression (smoke)
 
-Generated 2026-11-04T04:09:23Z · commit a59548bc63ae · smoke suite · 1 s
+Generated 2026-11-04T04:12:06Z · commit 56d28eea1356 · smoke suite · 1 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
@@ -34,8 +34,8 @@ No earlier report to compare with.
 | routes › project manager: every page in the route table answers without a server error | 0.1 s |
 | routes › project engineer: every page in the route table answers without a server error | 0.1 s |
 | routes › superintendent: every page in the route table answers without a server error | 0.1 s |
-| routes › owner and design team: every page in the route table answers without a server error | 0.1 s |
 | routes › subcontractor: every page in the route table answers without a server error | 0.1 s |
+| routes › owner and design team: every page in the route table answers without a server error | 0.1 s |
 
 ## Slowest requests (of 2681)
 
@@ -55,9 +55,9 @@ No earlier report to compare with.
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-7827/data. |
+| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-3329/data. |
 | boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:34079 |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:45849 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
