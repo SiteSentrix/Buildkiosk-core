@@ -1,0 +1,1070 @@
+{
+  "checks": [
+    {
+      "area": "suite",
+      "detail": "forms, selects, checkboxes, buttons and links",
+      "id": "suite › the page reader understands forms and links",
+      "ms": 0,
+      "name": "the page reader understands forms and links",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "Demo company created in /tmp/buildkiosk-regress-7725/data.",
+      "id": "boot › the demo company is created from the command line",
+      "ms": 148,
+      "name": "the demo company is created from the command line",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "6 tokens",
+      "id": "boot › an API token is made for every role from the command line",
+      "ms": 33,
+      "name": "an API token is made for every role from the command line",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "127.0.0.1:33111",
+      "id": "boot › the server starts on a free port and answers",
+      "ms": 100,
+      "name": "the server starts on a free port and answers",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "200",
+      "id": "boot › the sign-in page answers",
+      "ms": 0,
+      "name": "the sign-in page answers",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "ada@example.com",
+      "id": "sign-in › admin signs in",
+      "ms": 26,
+      "name": "admin signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "priya.raman@example.com",
+      "id": "sign-in › project manager signs in",
+      "ms": 24,
+      "name": "project manager signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "marcus.lee@example.com",
+      "id": "sign-in › superintendent signs in",
+      "ms": 19,
+      "name": "superintendent signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "elena.cruz@example.com",
+      "id": "sign-in › project engineer signs in",
+      "ms": 20,
+      "name": "project engineer signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "tom.okafor@example.com",
+      "id": "sign-in › subcontractor signs in",
+      "ms": 18,
+      "name": "subcontractor signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "hana.berg@example.com",
+      "id": "sign-in › owner and design team signs in",
+      "ms": 19,
+      "name": "owner and design team signs in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "HttpOnly, SameSite, Path=/",
+      "id": "sign-in › session and form cookies are HttpOnly and SameSite",
+      "ms": 18,
+      "name": "session and form cookies are HttpOnly and SameSite",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "sign-in",
+      "detail": "401",
+      "id": "sign-in › a wrong password is refused",
+      "ms": 17,
+      "name": "a wrong password is refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "403",
+      "id": "safety › a sign-in without the form token is refused (CSRF)",
+      "ms": 0,
+      "name": "a sign-in without the form token is refused (CSRF)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "projects",
+      "detail": "projects [2, 1]",
+      "id": "projects › the demo projects are listed on the home page",
+      "ms": 0,
+      "name": "the demo projects are listed on the home page",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×125, 303×5, 404×104",
+      "id": "routes › admin: every page in the route table answers without a server error",
+      "ms": 56,
+      "name": "admin: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×116, 303×7, 404×111",
+      "id": "routes › project manager: every page in the route table answers without a server error",
+      "ms": 52,
+      "name": "project manager: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×100, 303×7, 404×127",
+      "id": "routes › superintendent: every page in the route table answers without a server error",
+      "ms": 50,
+      "name": "superintendent: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×100, 303×7, 404×127",
+      "id": "routes › project engineer: every page in the route table answers without a server error",
+      "ms": 50,
+      "name": "project engineer: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×69, 303×7, 404×158",
+      "id": "routes › subcontractor: every page in the route table answers without a server error",
+      "ms": 47,
+      "name": "subcontractor: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "234 routes: 200×76, 303×7, 404×151",
+      "id": "routes › owner and design team: every page in the route table answers without a server error",
+      "ms": 54,
+      "name": "owner and design team: every page in the route table answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "routes",
+      "detail": "no server errors",
+      "id": "routes › admin: made-up and malformed ids never cause a server error",
+      "ms": 182,
+      "name": "admin: made-up and malformed ids never cause a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "access",
+      "detail": "221 private pages",
+      "id": "access › anonymous: every private page sends the visitor to sign in",
+      "ms": 32,
+      "name": "anonymous: every private page sends the visitor to sign in",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "/settings, /admin/backups, /admin/email",
+      "id": "access › subcontractor: company admin pages are refused",
+      "ms": 0,
+      "name": "subcontractor: company admin pages are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "/settings, /admin/backups, /admin/email",
+      "id": "access › owner and design team: company admin pages are refused",
+      "ms": 0,
+      "name": "owner and design team: company admin pages are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "/settings, /admin/backups, /admin/email",
+      "id": "access › project engineer: company admin pages are refused",
+      "ms": 0,
+      "name": "project engineer: company admin pages are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "403/404 or a redirect",
+      "id": "access › refused and missing pages answer 403, 404 or a redirect, not 200",
+      "ms": 0,
+      "name": "refused and missing pages answer 403, 404 or a redirect, not 200",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "crawl",
+      "detail": "490 pages: 200×488, 303×2",
+      "id": "crawl › admin: every linked page answers without a server error",
+      "ms": 0,
+      "name": "admin: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "490 pages",
+      "id": "crawl › admin: every link shown opens (no 4xx, no \"not found\" page)",
+      "ms": 0,
+      "name": "admin: every link shown opens (no 4xx, no \"not found\" page)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "crawl",
+      "detail": "469 pages: 200×467, 303×2",
+      "id": "crawl › project manager: every linked page answers without a server error",
+      "ms": 0,
+      "name": "project manager: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "469 pages",
+      "id": "crawl › project manager: every link shown opens (no 4xx, no \"not found\" page)",
+      "ms": 0,
+      "name": "project manager: every link shown opens (no 4xx, no \"not found\" page)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "crawl",
+      "detail": "399 pages: 200×399",
+      "id": "crawl › superintendent: every linked page answers without a server error",
+      "ms": 0,
+      "name": "superintendent: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "399 pages",
+      "id": "crawl › superintendent: every link shown opens (no 4xx, no \"not found\" page)",
+      "ms": 0,
+      "name": "superintendent: every link shown opens (no 4xx, no \"not found\" page)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "crawl",
+      "detail": "389 pages: 200×387, 303×2",
+      "id": "crawl › project engineer: every linked page answers without a server error",
+      "ms": 0,
+      "name": "project engineer: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "389 pages",
+      "id": "crawl › project engineer: every link shown opens (no 4xx, no \"not found\" page)",
+      "ms": 0,
+      "name": "project engineer: every link shown opens (no 4xx, no \"not found\" page)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "crawl",
+      "detail": "282 pages: 200×282",
+      "id": "crawl › subcontractor: every linked page answers without a server error",
+      "ms": 0,
+      "name": "subcontractor: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "282 pages",
+      "id": "crawl › subcontractor: every link shown opens (no 4xx, no \"not found\" page)",
+      "ms": 0,
+      "name": "subcontractor: every link shown opens (no 4xx, no \"not found\" page)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "crawl",
+      "detail": "304 pages: 200×304",
+      "id": "crawl › owner and design team: every linked page answers without a server error",
+      "ms": 0,
+      "name": "owner and design team: every linked page answers without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "crawl",
+      "detail": "304 pages",
+      "id": "crawl › owner and design team: every link shown opens (no 4xx, no \"not found\" page)",
+      "ms": 0,
+      "name": "owner and design team: every link shown opens (no 4xx, no \"not found\" page)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "RFI 7: rfi.create → rfi.update → rfi.attach → rfi.respond → rfi.close",
+      "id": "loops › RFI: create, edit, attach, respond, close (journal checked each step)",
+      "ms": 23,
+      "name": "RFI: create, edit, attach, respond, close (journal checked each step)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "loops",
+      "detail": "item 7: punch.create → punch.update → punch.attach → punch.complete",
+      "id": "loops › punch list: create, edit, attach, finish (journal checked each step)",
+      "ms": 17,
+      "name": "punch list: create, edit, attach, finish (journal checked each step)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "loops",
+      "detail": "log 3: daily_log.create → daily_log.update → daily_log.attach → daily_log.submit",
+      "id": "loops › daily log: create, edit, attach, submit (journal checked each step)",
+      "ms": 18,
+      "name": "daily log: create, edit, attach, submit (journal checked each step)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "29 tools open, 0 refused",
+      "id": "access › admin: the tools its permission template allows open, the others are refused",
+      "ms": 9,
+      "name": "admin: the tools its permission template allows open, the others are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "29 tools open, 0 refused",
+      "id": "access › project manager: the tools its permission template allows open, the others are refused",
+      "ms": 10,
+      "name": "project manager: the tools its permission template allows open, the others are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "29 tools open, 0 refused",
+      "id": "access › superintendent: the tools its permission template allows open, the others are refused",
+      "ms": 9,
+      "name": "superintendent: the tools its permission template allows open, the others are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "29 tools open, 0 refused",
+      "id": "access › project engineer: the tools its permission template allows open, the others are refused",
+      "ms": 9,
+      "name": "project engineer: the tools its permission template allows open, the others are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "18 tools open, 11 refused",
+      "id": "access › subcontractor: the tools its permission template allows open, the others are refused",
+      "ms": 7,
+      "name": "subcontractor: the tools its permission template allows open, the others are refused",
+      "note": "passes now: take it off the known-skips list",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "access",
+      "detail": "21 tools open, 8 refused",
+      "id": "access › owner and design team: the tools its permission template allows open, the others are refused",
+      "ms": 8,
+      "name": "owner and design team: the tools its permission template allows open, the others are refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "tools",
+      "detail": "submittals 5: submittal.create → edit (no change) → submittal.attach",
+      "id": "tools › submittals: create, open, edit, attach",
+      "ms": 14,
+      "name": "submittals: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "observations 5: observation.create → edit (no change) → observation.attach",
+      "id": "tools › observations: create, open, edit, attach",
+      "ms": 13,
+      "name": "observations: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "tasks 1: task.create → edit (no change) → task.attach",
+      "id": "tools › tasks: create, open, edit, attach",
+      "ms": 14,
+      "name": "tasks: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "incidents 1: incident.create → edit (no change) → incident.attach",
+      "id": "tools › incidents: create, open, edit, attach",
+      "ms": 14,
+      "name": "incidents: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "meetings 3: meeting.create → edit → meeting.attach",
+      "id": "tools › meetings: create, open, edit, attach",
+      "ms": 14,
+      "name": "meetings: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "transmittals 3: transmittal.create → edit → transmittal.attach",
+      "id": "tools › transmittals: create, open, edit, attach",
+      "ms": 14,
+      "name": "transmittals: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "correspondence 1: correspondence.create → edit → correspondence.attach",
+      "id": "tools › correspondence: create, open, edit, attach",
+      "ms": 14,
+      "name": "correspondence: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "action-plans 1: action_plan.create → edit → action_plan.attach",
+      "id": "tools › action-plans: create, open, edit, attach",
+      "ms": 14,
+      "name": "action-plans: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "inspections 3: inspection.create → edit (no change) → inspection.attach",
+      "id": "tools › inspections: create, open, edit, attach",
+      "ms": 16,
+      "name": "inspections: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "commitments 5: commitment.create → edit (no change) → commitment.attach",
+      "id": "tools › commitments: create, open, edit, attach",
+      "ms": 16,
+      "name": "commitments: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "change-events 1: change_event.create → edit (no change)",
+      "id": "tools › change-events: create, open, edit, attach",
+      "ms": 11,
+      "name": "change-events: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "prime-contracts 1: prime_contract.create → edit (no change)",
+      "id": "tools › prime-contracts: create, open, edit, attach",
+      "ms": 11,
+      "name": "prime-contracts: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "bidding 1: bid_package.create → edit → bid_package.attach",
+      "id": "tools › bidding: create, open, edit, attach",
+      "ms": 16,
+      "name": "bidding: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "estimating 1: estimate.create → edit",
+      "id": "tools › estimating: create, open, edit, attach",
+      "ms": 12,
+      "name": "estimating: create, open, edit, attach",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "sheet 9; view.png 404",
+      "id": "tools › drawings: upload a sheet, open it and its viewer page",
+      "ms": 7,
+      "name": "drawings: upload a sheet, open it and its viewer page",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "schedule.add",
+      "id": "tools › schedule: add a task",
+      "ms": 5,
+      "name": "schedule: add a task",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "punch 8: create → comment, shown on the page",
+      "id": "loops › punch-list: comment on an item (journal checked)",
+      "ms": 10,
+      "name": "punch-list: comment on an item (journal checked)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "observation 6: create → comment, shown on the page",
+      "id": "loops › observations: comment on an item (journal checked)",
+      "ms": 10,
+      "name": "observations: comment on an item (journal checked)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "submittal 6: create+open → review (approved) → close",
+      "id": "loops › submittal: create, send for review, reviewer approves, close (journal checked)",
+      "ms": 16,
+      "name": "submittal: create, send for review, reviewer approves, close (journal checked)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "change-orders 1: create → commitment_change.approve",
+      "id": "loops › commitment change order: create with a line, approve (journal checked)",
+      "ms": 10,
+      "name": "commitment change order: create with a line, approve (journal checked)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "prime-contracts 2: create → prime_contract.approve",
+      "id": "loops › prime contract: create with a line, approve (journal checked)",
+      "ms": 10,
+      "name": "prime contract: create with a line, approve (journal checked)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "loops",
+      "detail": "prime-change-orders 1: create → prime_change.approve",
+      "id": "loops › prime change order: create with a line, approve (journal checked)",
+      "ms": 11,
+      "name": "prime change order: create with a line, approve (journal checked)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "exports",
+      "detail": "17 exports",
+      "id": "exports › every CSV export downloads as CSV",
+      "ms": 3,
+      "name": "every CSV export downloads as CSV",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "exports",
+      "detail": "written as '=1+2…",
+      "id": "exports › a spreadsheet formula typed into an RFI is defused in the CSV",
+      "ms": 1,
+      "name": "a spreadsheet formula typed into an RFI is defused in the CSV",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "imports",
+      "detail": "4359 bytes round-tripped",
+      "id": "imports › schedule exchange file: export from one project, import into the other",
+      "ms": 6,
+      "name": "schedule exchange file: export from one project, import into the other",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "imports",
+      "detail": "budget.import",
+      "id": "imports › budget: export the CSV, import it into the other project",
+      "ms": 6,
+      "name": "budget: export the CSV, import it into the other project",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "imports",
+      "detail": "punch.import, then in punch-list.csv",
+      "id": "imports › punch-list: import a CSV file, then find the lines in the CSV export",
+      "ms": 5,
+      "name": "punch-list: import a CSV file, then find the lines in the CSV export",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "imports",
+      "detail": "observation.import, then in observations.csv",
+      "id": "imports › observations: import a CSV file, then find the lines in the CSV export",
+      "ms": 5,
+      "name": "observations: import a CSV file, then find the lines in the CSV export",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "imports",
+      "detail": "submittal.import, then in submittals.csv",
+      "id": "imports › submittals: import a CSV file, then find the lines in the CSV export",
+      "ms": 5,
+      "name": "submittals: import a CSV file, then find the lines in the CSV export",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "imports",
+      "detail": "10 tasks round-tripped",
+      "id": "imports › schedule exchange (.xer) file: tasks from one project's export imported into the other",
+      "ms": 6,
+      "name": "schedule exchange (.xer) file: tasks from one project's export imported into the other",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "uploads",
+      "detail": "answered 303 The upload failed or the file is larger than 25 MB.",
+      "id": "uploads › a file over 25 MB is refused without a server error",
+      "ms": 67,
+      "name": "a file over 25 MB is refused without a server error",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "uploads",
+      "detail": "POST /projects/2/photos/upload refused: Photos must be JPEG, PNG, GIF or WebP pictures.",
+      "id": "uploads › a photo upload must be an image",
+      "ms": 5,
+      "name": "a photo upload must be an image",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "safety",
+      "detail": "attachment + nosniff",
+      "id": "safety › an uploaded web page is served as a download, never as a live page",
+      "ms": 7,
+      "name": "an uploaded web page is served as a download, never as a live page",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "form_template.create → form.create (/projects/2/forms/1?ok=Start%20form%3A%20done.)",
+      "id": "tools › forms: make a template and start a form from it",
+      "ms": 11,
+      "name": "forms: make a template and start a form from it",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "tools",
+      "detail": "/prequalification?ok=Save%20prequalification%3A%20done.",
+      "id": "tools › prequalification: add a record for a company",
+      "ms": 6,
+      "name": "prequalification: add a record for a company",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "uploads",
+      "detail": "34 upload routes refused an over-size file",
+      "id": "uploads › every upload route refuses a file over its size limit without a server error or a change",
+      "ms": 1708,
+      "name": "every upload route refuses a file over its size limit without a server error or a change",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "uploads",
+      "detail": "34 routes; 24 took the file and serve files only as downloads",
+      "id": "uploads › every upload route either refuses a web page or serves it back only as a download",
+      "ms": 42,
+      "name": "every upload route either refuses a web page or serves it back only as a download",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "api",
+      "detail": "200 with, 401 without",
+      "id": "api › a command with an API token works; without one it is refused",
+      "ms": 0,
+      "name": "a command with an API token works; without one it is refused",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "api",
+      "detail": "403",
+      "id": "api › a subcontractor's token cannot add people to the company",
+      "ms": 5,
+      "name": "a subcontractor's token cannot add people to the company",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "api",
+      "detail": "initialize ok",
+      "id": "api › MCP over HTTP answers initialize with a token",
+      "ms": 0,
+      "name": "MCP over HTTP answers initialize with a token",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "sign-in",
+      "detail": "429 after repeated failures",
+      "id": "sign-in › repeated wrong passwords are slowed down",
+      "ms": 144,
+      "name": "repeated wrong passwords are slowed down",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "sign-in",
+      "detail": "old cookie refused",
+      "id": "sign-in › signing out ends the session (the old cookie no longer works)",
+      "ms": 20,
+      "name": "signing out ends the session (the old cookie no longer works)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "access",
+      "detail": "RFI 8 under project 1: not found",
+      "id": "access › a record opened under another project is not found",
+      "ms": 0,
+      "name": "a record opened under another project is not found",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "safety",
+      "detail": "80 post routes refused",
+      "id": "safety › every form post without its CSRF token is refused and changes nothing",
+      "ms": 17,
+      "name": "every form post without its CSRF token is refused and changes nothing",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "5493 answers checked",
+      "id": "safety › every answer carries the security headers",
+      "ms": 0,
+      "name": "every answer carries the security headers",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "5493 answers checked",
+      "id": "safety › no answer shows panic text, a stack trace, a source location or a secret",
+      "ms": 0,
+      "name": "no answer shows panic text, a stack trace, a source location or a secret",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "215 lines",
+      "id": "safety › the journal holds no password, token or session cookie",
+      "ms": 0,
+      "name": "the journal holds no password, token or session cookie",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "boot",
+      "detail": "yes",
+      "id": "boot › the server was still running at the end of the run",
+      "ms": 0,
+      "name": "the server was still running at the end of the run",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "1 log lines",
+      "id": "safety › no panics in the server log (first run)",
+      "ms": 0,
+      "name": "no panics in the server log (first run)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "clean",
+      "id": "safety › the server log shows no password, token or session cookie (first run)",
+      "ms": 0,
+      "name": "the server log shows no password, token or session cookie (first run)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "data",
+      "detail": "summit-ridge: ok, 215 journal entries; company 1, people 6, vendors 3, prequalifications 1, templates 6, projects 2, members 12, cost_codes 75, rfis 8, submittals 8, transmittals 3, correspondence 1, meetings 3, form_templates 1, form_records 1, tasks 2, spec_sections 6, punch_items 11, inspection_templates 8, inspections 3, observations 8, action_plans 1, incidents 2, daily_logs 3, schedule_tasks 39, budget_lines 13, commitments 5, direct_costs 6, change_events 1, commitment_changes 1, prime_contracts 2, prime_changes 1, bid_packages 1, estimates 1, folders 4, documents 5, drawings 10, notifications 52",
+      "id": "data › `buildkiosk check` replays every journal after the run",
+      "ms": 6,
+      "name": "`buildkiosk check` replays every journal after the run",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "data",
+      "detail": "started",
+      "id": "data › the server starts again on the same data (behind HTTPS: --secure-cookies)",
+      "ms": 100,
+      "name": "the server starts again on the same data (behind HTTPS: --secure-cookies)",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "sign-in",
+      "detail": "Secure + HSTS",
+      "id": "sign-in › behind HTTPS the cookies are Secure and HSTS is sent",
+      "ms": 27,
+      "name": "behind HTTPS the cookies are Secure and HSTS is sent",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "data",
+      "detail": "the regression RFI is listed",
+      "id": "data › what the run made is still there after the restart",
+      "ms": 0,
+      "name": "what the run made is still there after the restart",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "boot",
+      "detail": "yes",
+      "id": "boot › the restarted server was still running at the end",
+      "ms": 0,
+      "name": "the restarted server was still running at the end",
+      "note": "",
+      "result": "pass",
+      "tag": "@release"
+    },
+    {
+      "area": "safety",
+      "detail": "1 log lines",
+      "id": "safety › no panics in the server log (after the restart)",
+      "ms": 0,
+      "name": "no panics in the server log (after the restart)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "safety",
+      "detail": "clean",
+      "id": "safety › the server log shows no password, token or session cookie (after the restart)",
+      "ms": 0,
+      "name": "the server log shows no password, token or session cookie (after the restart)",
+      "note": "",
+      "result": "pass",
+      "tag": "@smoke"
+    },
+    {
+      "area": "upgrade",
+      "detail": "no previous release program (BK_REGRESS_PREV_BIN)",
+      "id": "upgrade › the previous release's data folder opens with this build",
+      "ms": 0,
+      "name": "the previous release's data folder opens with this build",
+      "note": "known until 2026-11-17: no published release yet to upgrade from; the first release tag makes this check run (regress.yml downloads the previous release's Linux build)",
+      "result": "skip",
+      "tag": "@release"
+    }
+  ],
+  "commit": "5da7e286ba54",
+  "gate": "pass",
+  "generated": "2026-11-05T03:24:32Z",
+  "problems": [],
+  "requests": 5496,
+  "suite": "release"
+}
