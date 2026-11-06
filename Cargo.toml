@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 # `std::fs::File::lock` (the data directory lock) is stable from 1.89.
 rust-version = "1.89"
-repository = "https://github.com/bwattendorf/Buildkiosk-core"
+repository = "https://github.com/SiteSentrix/Buildkiosk-core"
 
 [workspace.dependencies]
 # internal

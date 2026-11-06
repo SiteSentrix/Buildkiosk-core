@@ -395,7 +395,7 @@ jobs:
           sha256sum buildkiosk-* > SHA256SUMS
           cat SHA256SUMS
       # People can check that the files were built by this workflow from this repository:
-      #   gh attestation verify buildkiosk-<version>-<target>.tar.gz --repo bwattendorf/Buildkiosk-core
+      #   gh attestation verify buildkiosk-<version>-<target>.tar.gz --repo SiteSentrix/Buildkiosk-core
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: dist/buildkiosk-*

@@ -6,7 +6,7 @@ problems privately so they can be fixed before they are public.
 ## Reporting a vulnerability
 
 Use GitHub's private reporting: open the repository's **Security** tab and choose **Report a vulnerability**
-(`https://github.com/bwattendorf/Buildkiosk-core/security/advisories/new`). Please don't open a public issue or pull
+(`https://github.com/SiteSentrix/Buildkiosk-core/security/advisories/new`). Please don't open a public issue or pull
 request for a vulnerability.
 
 Include what you found, the version or commit, the steps to reproduce it, and what an attacker could do with it.
