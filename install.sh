@@ -2,7 +2,7 @@
 # Installs a BuildKiosk release: downloads the archive for this machine from the project's GitHub releases,
 # checks it against the published SHA-256 checksums, and puts the `buildkiosk` program in place.
 #
-#   curl -fsSL https://raw.githubusercontent.com/bwattendorf/Buildkiosk-core/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/SiteSentrix/Buildkiosk-core/main/install.sh | sh
 #   sh install.sh --version v0.1.0 --prefix /opt/buildkiosk
 #   sudo sh install.sh --service            # Linux with systemd: also a service user, data folder and unit
 #
@@ -17,7 +17,7 @@
 # Environment: BUILDKIOSK_REPO (owner/name), BUILDKIOSK_BASE_URL and BUILDKIOSK_API_URL (for testing).
 set -eu
 
-REPO="${BUILDKIOSK_REPO:-bwattendorf/Buildkiosk-core}"
+REPO="${BUILDKIOSK_REPO:-SiteSentrix/Buildkiosk-core}"
 BASE="${BUILDKIOSK_BASE_URL:-https://github.com/$REPO/releases/download}"
 API="${BUILDKIOSK_API_URL:-https://api.github.com/repos/$REPO}"
 

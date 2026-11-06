@@ -138,7 +138,7 @@ long tail of each tool. These are tracked in [`docs/gaps.md`](docs/gaps.md) and 
 
 ## Install or build it
 
-**Downloads** are on the [releases page](https://github.com/bwattendorf/Buildkiosk-core/releases) once a version is tagged (none is
+**Downloads** are on the [releases page](https://github.com/SiteSentrix/Buildkiosk-core/releases) once a version is tagged (none is
 published yet). Each release has one archive per platform, plus `SHA256SUMS`:
 
 | Platform | Archive |
@@ -154,7 +154,7 @@ A released version installs with one command (Linux and macOS; Windows has a .zi
 download against published checksums first, and `--help` lists the options (see [`docs/deployment.md`](docs/deployment.md)):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/bwattendorf/Buildkiosk-core/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SiteSentrix/Buildkiosk-core/main/install.sh | sh
 ```
 
 The Windows and macOS programs are signed (Windows: Authenticode; macOS: Developer ID, notarized by Apple), so the system does
