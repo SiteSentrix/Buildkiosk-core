@@ -6,12 +6,12 @@ BuildKiosk is one binary and one data directory. There is no database server to 
 
 ## Install a release
 
-Each release on the [releases page](https://github.com/bwattendorf/Buildkiosk-core/releases) has an archive per platform
+Each release on the [releases page](https://github.com/SiteSentrix/Buildkiosk-core/releases) has an archive per platform
 (Linux x86_64 and aarch64 as static builds that run on any distribution, macOS Intel and Apple silicon, Windows
 x86_64), `SHA256SUMS` and `install.sh`. On Linux and macOS:
 
 ```
-curl -fsSL https://raw.githubusercontent.com/bwattendorf/Buildkiosk-core/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/SiteSentrix/Buildkiosk-core/main/install.sh | sh
 ```
 
 The script is short; read it first if you like (`install.sh --help`, `--dry-run`). It finds the newest release (pre-releases
@@ -23,7 +23,7 @@ unit. On Windows, download the `.zip`, unpack it and run `buildkiosk.exe`.
 
 To check by hand: `sha256sum -c SHA256SUMS --ignore-missing`. The Windows and macOS programs are also signed (see Signed builds below). Each archive also carries a GitHub build attestation, which
 shows it was built by this repository's release workflow from a tagged commit:
-`gh attestation verify buildkiosk-<version>-<target>.tar.gz --repo bwattendorf/Buildkiosk-core`.
+`gh attestation verify buildkiosk-<version>-<target>.tar.gz --repo SiteSentrix/Buildkiosk-core`.
 
 To uninstall, delete the binary (and, for a service install, `systemctl disable --now buildkiosk`, the unit file and, if
 you want the data gone too, `/var/lib/buildkiosk`: that is the company data, so take a backup first).
@@ -79,7 +79,7 @@ volumes:
   in front; don't expose plain HTTP to the internet.
 - Other commands run the same way: `docker run --rm -v buildkiosk-data:/data ghcr.io/bwattendorf/buildkiosk-core:0.1.0 check --data /data`
   (stop the server first: the data directory is locked while it runs). Run it with `--init` (`init: true` in Compose): the server has no signal handler of its own, so as the container's first process it would ignore `docker stop` until Docker kills it after 10 seconds. Nothing is lost either way, because each change is fsynced to the journal before it takes effect.
-- Verify an image the way you verify an archive: `gh attestation verify oci://ghcr.io/bwattendorf/buildkiosk-core:0.1.0 --repo bwattendorf/Buildkiosk-core`.
+- Verify an image the way you verify an archive: `gh attestation verify oci://ghcr.io/bwattendorf/buildkiosk-core:0.1.0 --repo SiteSentrix/Buildkiosk-core`.
 - To build one yourself from a release archive, see the comment at the top of `contrib/docker/Dockerfile`.
 
 ## Run it
