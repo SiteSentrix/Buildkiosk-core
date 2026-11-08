@@ -1,6 +1,6 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-07T03:19:39Z · commit a9c1fcaf667b · release suite · 5 s
+Generated 2026-11-08T10:14:27Z · commit a9c1fcaf667b · release suite · 4 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
@@ -42,29 +42,29 @@ None.
 | boot › the server starts on a free port and answers | 0.1 s |
 | data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
 | uploads › a file over 25 MB is refused without a server error | 0.1 s |
-| routes › project manager: every page in the route table answers without a server error | 0.1 s |
+| routes › admin: every page in the route table answers without a server error | 0.1 s |
 
 ## Slowest requests (of 5496)
 
 | Request | Status | Time |
 |---|---|---|
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /prequalification/1/upload (admin) | 303 | 0.0 s |
-| POST /login (admin) | 303 | 0.0 s |
 | POST /login (admin (after restart)) | 303 | 0.0 s |
+| POST /login (admin) | 303 | 0.0 s |
+| POST /projects/2/action-plans/1/upload (admin) | 303 | 0.0 s |
+| POST /prequalification/1/upload (admin) | 303 | 0.0 s |
 | POST /login (project manager) | 303 | 0.0 s |
-| POST /projects/2/documents/3/upload (admin) | 303 | 0.0 s |
-| POST /projects/2/commitments/5/upload (admin) | 303 | 0.0 s |
-| POST /projects/2/correspondence/1/upload (admin) | 303 | 0.0 s |
+| POST /projects/2/incidents/1/upload (admin) | 303 | 0.0 s |
+| POST /projects/2/rfis/8/respond (admin) | 303 | 0.0 s |
 
 ## Every check
 
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-3067/data. |
+| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-3049/data. |
 | boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:42145 |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:43505 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
