@@ -1,6 +1,6 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-08T10:14:27Z · commit a9c1fcaf667b · release suite · 4 s
+Generated 2026-11-09T11:24:59Z · commit a9c1fcaf667b · release suite · 4 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
@@ -35,36 +35,36 @@ None.
 
 | Check | Time |
 |---|---|
-| uploads › every upload route refuses a file over its size limit without a server error or a change | 2.0 s |
+| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.6 s |
 | routes › admin: made-up and malformed ids never cause a server error | 0.2 s |
-| boot › the demo company is created from the command line | 0.2 s |
+| boot › the demo company is created from the command line | 0.1 s |
 | sign-in › repeated wrong passwords are slowed down | 0.1 s |
 | boot › the server starts on a free port and answers | 0.1 s |
 | data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
 | uploads › a file over 25 MB is refused without a server error | 0.1 s |
-| routes › admin: every page in the route table answers without a server error | 0.1 s |
+| uploads › every upload route either refuses a web page or serves it back only as a download | 0.1 s |
 
 ## Slowest requests (of 5496)
 
 | Request | Status | Time |
 |---|---|---|
+| POST /projects/2/commitments/5/upload (project manager) | 303 | 0.0 s |
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (admin) | 303 | 0.0 s |
-| POST /projects/2/action-plans/1/upload (admin) | 303 | 0.0 s |
 | POST /prequalification/1/upload (admin) | 303 | 0.0 s |
+| POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (project manager) | 303 | 0.0 s |
-| POST /projects/2/incidents/1/upload (admin) | 303 | 0.0 s |
-| POST /projects/2/rfis/8/respond (admin) | 303 | 0.0 s |
+| POST /projects/2/daily-logs/3/upload (admin) | 303 | 0.0 s |
+| POST /projects/2/action-plans/1/upload (admin) | 303 | 0.0 s |
 
 ## Every check
 
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-3049/data. |
+| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-2828/data. |
 | boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:43505 |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:42073 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
@@ -80,8 +80,8 @@ None.
 | routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×116, 303×7, 404×111 |
 | routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×100, 303×7, 404×127 |
 | routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×100, 303×7, 404×127 |
-| routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×69, 303×7, 404×158 |
-| routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×76, 303×7, 404×151 |
+| routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×69, 303×7, 404×158 |
+| routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×76, 303×7, 404×151 |
 | routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.2 s | no server errors |
 | access | anonymous: every private page sends the visitor to sign in | @smoke | pass | 0.0 s | 221 private pages |
 | access | subcontractor: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
@@ -144,7 +144,7 @@ None.
 | safety | an uploaded web page is served as a download, never as a live page | @release | pass | 0.0 s | attachment + nosniff |
 | tools | forms: make a template and start a form from it | @release | pass | 0.0 s | form_template.create → form.create (/projects/2/forms/1?ok=Start%20form%3A%20done.) |
 | tools | prequalification: add a record for a company | @release | pass | 0.0 s | /prequalification?ok=Save%20prequalification%3A%20done. |
-| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 2.0 s | 34 upload routes refused an over-size file |
+| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.6 s | 34 upload routes refused an over-size file |
 | uploads | every upload route either refuses a web page or serves it back only as a download | @release | pass | 0.1 s | 34 routes; 24 took the file and serve files only as downloads |
 | api | a command with an API token works; without one it is refused | @release | pass | 0.0 s | 200 with, 401 without |
 | api | a subcontractor's token cannot add people to the company | @release | pass | 0.0 s | 403 |
