@@ -1,6 +1,6 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-10T11:03:57Z · commit a9c1fcaf667b · release suite · 3 s
+Generated 2026-11-11T10:49:57Z · commit a9c1fcaf667b · release suite · 4 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
@@ -35,36 +35,36 @@ None.
 
 | Check | Time |
 |---|---|
-| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.3 s |
+| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.6 s |
+| boot › an API token is made for every role from the command line | 0.3 s |
+| routes › admin: made-up and malformed ids never cause a server error | 0.2 s |
 | boot › the demo company is created from the command line | 0.1 s |
-| routes › admin: made-up and malformed ids never cause a server error | 0.1 s |
-| boot › the server starts on a free port and answers | 0.1 s |
-| data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
 | sign-in › repeated wrong passwords are slowed down | 0.1 s |
-| uploads › a file over 25 MB is refused without a server error | 0.0 s |
-| routes › admin: every page in the route table answers without a server error | 0.0 s |
+| boot › the server starts on a free port and answers | 0.1 s |
+| uploads › every upload route either refuses a web page or serves it back only as a download | 0.1 s |
+| data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
 
 ## Slowest requests (of 5496)
 
 | Request | Status | Time |
 |---|---|---|
+| POST /projects/2/change-orders/save (admin) | 303 | 0.1 s |
+| POST /projects/2/action-plans/1/upload (admin) | 303 | 0.1 s |
+| POST /projects/2/action-plans/1/upload (project manager) | 303 | 0.0 s |
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /login (admin) | 303 | 0.0 s |
-| POST /login (admin (after restart)) | 303 | 0.0 s |
-| POST /login (project manager) | 303 | 0.0 s |
 | POST /prequalification/1/upload (admin) | 303 | 0.0 s |
-| POST /projects/2/commitments/5/upload (admin) | 303 | 0.0 s |
-| POST /projects/2/daily-logs/3/upload (admin) | 303 | 0.0 s |
-| POST /login (superintendent) | 303 | 0.0 s |
+| POST /login (admin (after restart)) | 303 | 0.0 s |
+| POST /login (admin) | 303 | 0.0 s |
+| POST /login (project manager) | 303 | 0.0 s |
 
 ## Every check
 
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-2799/data. |
-| boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:33429 |
+| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-2825/data. |
+| boot | an API token is made for every role from the command line | @smoke | pass | 0.3 s | 6 tokens |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:43591 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
@@ -76,13 +76,13 @@ None.
 | sign-in | a wrong password is refused | @smoke | pass | 0.0 s | 401 |
 | safety | a sign-in without the form token is refused (CSRF) | @smoke | pass | 0.0 s | 403 |
 | projects | the demo projects are listed on the home page | @smoke | pass | 0.0 s | projects [2, 1] |
-| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×125, 303×5, 404×104 |
-| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×116, 303×7, 404×111 |
-| routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×100, 303×7, 404×127 |
-| routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×100, 303×7, 404×127 |
+| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×125, 303×5, 404×104 |
+| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×116, 303×7, 404×111 |
+| routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×100, 303×7, 404×127 |
+| routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×100, 303×7, 404×127 |
 | routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×69, 303×7, 404×158 |
 | routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×76, 303×7, 404×151 |
-| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.1 s | no server errors |
+| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.2 s | no server errors |
 | access | anonymous: every private page sends the visitor to sign in | @smoke | pass | 0.0 s | 221 private pages |
 | access | subcontractor: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
 | access | owner and design team: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
@@ -116,7 +116,7 @@ None.
 | tools | meetings: create, open, edit, attach | @release | pass | 0.0 s | meetings 3: meeting.create → edit → meeting.attach |
 | tools | transmittals: create, open, edit, attach | @release | pass | 0.0 s | transmittals 3: transmittal.create → edit → transmittal.attach |
 | tools | correspondence: create, open, edit, attach | @release | pass | 0.0 s | correspondence 1: correspondence.create → edit → correspondence.attach |
-| tools | action-plans: create, open, edit, attach | @release | pass | 0.0 s | action-plans 1: action_plan.create → edit → action_plan.attach |
+| tools | action-plans: create, open, edit, attach | @release | pass | 0.1 s | action-plans 1: action_plan.create → edit → action_plan.attach |
 | tools | inspections: create, open, edit, attach | @release | pass | 0.0 s | inspections 3: inspection.create → edit (no change) → inspection.attach |
 | tools | commitments: create, open, edit, attach | @release | pass | 0.0 s | commitments 5: commitment.create → edit (no change) → commitment.attach |
 | tools | change-events: create, open, edit, attach | @release | pass | 0.0 s | change-events 1: change_event.create → edit (no change) |
@@ -128,7 +128,7 @@ None.
 | loops | punch-list: comment on an item (journal checked) | @release | pass | 0.0 s | punch 8: create → comment, shown on the page |
 | loops | observations: comment on an item (journal checked) | @release | pass | 0.0 s | observation 6: create → comment, shown on the page |
 | loops | submittal: create, send for review, reviewer approves, close (journal checked) | @release | pass | 0.0 s | submittal 6: create+open → review (approved) → close |
-| loops | commitment change order: create with a line, approve (journal checked) | @release | pass | 0.0 s | change-orders 1: create → commitment_change.approve |
+| loops | commitment change order: create with a line, approve (journal checked) | @release | pass | 0.1 s | change-orders 1: create → commitment_change.approve |
 | loops | prime contract: create with a line, approve (journal checked) | @release | pass | 0.0 s | prime-contracts 2: create → prime_contract.approve |
 | loops | prime change order: create with a line, approve (journal checked) | @release | pass | 0.0 s | prime-change-orders 1: create → prime_change.approve |
 | exports | every CSV export downloads as CSV | @release | pass | 0.0 s | 17 exports |
@@ -139,13 +139,13 @@ None.
 | imports | observations: import a CSV file, then find the lines in the CSV export | @release | pass | 0.0 s | observation.import, then in observations.csv |
 | imports | submittals: import a CSV file, then find the lines in the CSV export | @release | pass | 0.0 s | submittal.import, then in submittals.csv |
 | imports | schedule exchange (.xer) file: tasks from one project's export imported into the other | @release | pass | 0.0 s | 10 tasks round-tripped |
-| uploads | a file over 25 MB is refused without a server error | @release | pass | 0.0 s | answered 303 The upload failed or the file is larger than 25 MB. |
+| uploads | a file over 25 MB is refused without a server error | @release | pass | 0.1 s | answered 303 The upload failed or the file is larger than 25 MB. |
 | uploads | a photo upload must be an image | @release | pass | 0.0 s | POST /projects/2/photos/upload refused: Photos must be JPEG, PNG, GIF or WebP pictures. |
 | safety | an uploaded web page is served as a download, never as a live page | @release | pass | 0.0 s | attachment + nosniff |
 | tools | forms: make a template and start a form from it | @release | pass | 0.0 s | form_template.create → form.create (/projects/2/forms/1?ok=Start%20form%3A%20done.) |
 | tools | prequalification: add a record for a company | @release | pass | 0.0 s | /prequalification?ok=Save%20prequalification%3A%20done. |
-| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.3 s | 34 upload routes refused an over-size file |
-| uploads | every upload route either refuses a web page or serves it back only as a download | @release | pass | 0.0 s | 34 routes; 24 took the file and serve files only as downloads |
+| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.6 s | 34 upload routes refused an over-size file |
+| uploads | every upload route either refuses a web page or serves it back only as a download | @release | pass | 0.1 s | 34 routes; 24 took the file and serve files only as downloads |
 | api | a command with an API token works; without one it is refused | @release | pass | 0.0 s | 200 with, 401 without |
 | api | a subcontractor's token cannot add people to the company | @release | pass | 0.0 s | 403 |
 | api | MCP over HTTP answers initialize with a token | @release | pass | 0.0 s | initialize ok |
