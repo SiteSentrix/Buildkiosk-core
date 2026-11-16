@@ -15,11 +15,16 @@ code from any private product; the `public-guard` CI job (`.github/scripts/publi
 It replaces an earlier TypeScript app by the same owner: port its behaviour (re-derive it in Rust), never its code,
 text, tests or assets, and never anything in it that came from another vendor (see Clean-room).
 
-**Scope (owner decision): the tools a general contractor needs, single company, for now.** Build them in the order
-of [`docs/gaps.md`](docs/gaps.md), with our own look and wording. Extras are parked (badge printing and scan kiosk,
-field clock, equipment rentals, receipts, AI assistants, blockchain, AR/VR, drones, IoT, digital twin, carbon/ESG,
-third-party integrations, hosting for other companies): don't build or plan them here until the owner un-parks
-them. Keep it simple: one tool at a time, finished end to end (engine, tests, pages) before the next.
+**Scope (owner decision, 2026-11-04): every real feature of the original BuildKiosk that one company needs on its own server.**
+Build them in the order of [`ROADMAP.md`](ROADMAP.md) "Upcoming" and [`docs/gaps.md`](docs/gaps.md), with our own look
+and wording; the open feature issues are the work list. In scope for this core: inviting outside people with
+per-project roles, owner and subcontractor portals, field clock, safety, equipment, materials, closeout, workflows and
+custom fields, sharing documents by link, two-factor sign-in, webhooks, more languages and an installable phone app.
+Out of scope here: hosting many companies, anything that crosses company lines, billing, integrations with paid outside
+services (these belong to a separate private product; see [`docs/core-vs-enterprise.md`](docs/core-vs-enterprise.md)),
+and demo-grade ideas that were never real features (blockchain, AR/VR, IoT or digital twin, random-data "predictive"
+pages, carbon/ESG, access-control or other vendor connectors). Keep it simple: one tool at a time, finished end to
+end (engine, tests, pages, and a story in the QA regression suite) before the next.
 
 ## Start every session here
 1. Read [`ROADMAP.md`](ROADMAP.md) ("Honest assessment" first), then [`STATUS.md`](STATUS.md), then the task: a

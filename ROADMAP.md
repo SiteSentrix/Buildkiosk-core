@@ -2,7 +2,7 @@
 
 _Status: 2026-10-20. Stage: every scoped tool is built end to end and most go well past a first slice (see the progress log). Numbers are estimated, not measured._
 
-Scope: the tools a general contractor needs, single company, self-hosted; extras are parked (see AGENTS.md). Multi-company and hosted features live in a separate private add-on ([`docs/core-vs-enterprise.md`](docs/core-vs-enterprise.md)).
+Scope (owner, 2026-11-04): every real feature of the original BuildKiosk that one company needs, single company, self-hosted (see AGENTS.md); demo-grade ideas stay out. Multi-company and hosted features live in a separate private add-on ([`docs/core-vs-enterprise.md`](docs/core-vs-enterprise.md)).
 The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 
 ## Honest assessment (2026-11-04)
@@ -28,6 +28,14 @@ The ranked work list is [`docs/gaps.md`](docs/gaps.md).
 ## Upcoming
 1. Publish the first release (tag `v0.1.0`; the version in `Cargo.toml` and the tag must match).
 2. The open parts of the tools already built, in the order of `docs/gaps.md`: inspections (4), drawings (5), schedule (6), financials (7), company reports (10), prequalification (11), languages (12).
+3. The features un-parked on 2026-11-04, in build order (each is a GitHub issue; do one at a time, with a QA regression story):
+   1. Invite outside people by email with per-project roles (#5). 2. Owner/client portal with approvals (#6).
+   3. Subcontractor portal: dashboard, invoice submit, review (#7). 4. Share documents by link (#14).
+   5. Two-factor sign-in and lockout (#15). 6. Workflows: approval routing and custom fields (#13).
+   7. Safety: JHA, toolbox talks, LOTO with QR, training, permits (#9). 8. Materials: procurement, inventory, deliveries (#11).
+   9. Equipment: inventory, maintenance schedules (#10). 10. Field clock: phone clock-in/out (#8).
+   11. Closeout: O&M, warranties, commissioning, permits, liens, insurance (#12). 12. Webhooks (#16).
+   13. More UI languages, up to 12 (#17). 14. Installable phone app with offline read (#18).
 
 ## Progress log
 - 2026-11-04: Sign-in: the `Authenticator` hook is wired (`App::with_authenticator`): asked after the rate limit and before the local password; the default (none) keeps local passwords only (#33).
