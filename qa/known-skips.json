@@ -4,14 +4,8 @@
     {
       "check": "upgrade › the previous release's data folder opens with this build",
       "reason": "no published release yet to upgrade from; the first release tag makes this check run (regress.yml downloads the previous release's Linux build)",
-      "expires": "2026-11-17"
-    },
-    {
-      "check": "access › subcontractor: the tools its permission template allows open, the others are refused",
-      "reason": "FAILS (real finding): the template gives Timesheets Read, but the timesheets page needs Standard and says not found",
-      "expires": "2026-11-17",
-      "issue": 30,
-      "quarantine": true
+      "expires": "2026-12-01",
+      "issue": 43
     }
   ]
 }
