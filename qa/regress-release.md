@@ -1,15 +1,10 @@
 # QA latest: BuildKiosk regression (release)
 
-Generated 2026-11-18T11:33:00Z · commit 914f5206b7eb · release suite · 4 s
+Generated 2026-11-19T11:34:38Z · commit f2b73824dda4 · release suite · 3 s
 
 The real `buildkiosk` program, started on a throwaway data folder with the fictional demo company and driven over HTTP like a person (sign in, pages, forms, uploads, downloads). No production data; no secrets printed.
 
-**Gate: FAIL.** 105 passed, 0 failed, 0 known (quarantined, filed), 1 skipped.
-
-## What fails the gate
-
-- known-skip `upgrade › the previous release's data folder opens with this build` expired on 2026-11-17: fix the check or renew it with a reason
-- known-skip `access › subcontractor: the tools its permission template allows open, the others are refused` expired on 2026-11-17: fix the check or renew it with a reason
+**Gate: PASS.** 105 passed, 0 failed, 0 known (quarantined, filed), 1 skipped.
 
 ## New failures since the last run
 
@@ -40,36 +35,36 @@ None.
 
 | Check | Time |
 |---|---|
-| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.4 s |
-| boot › the demo company is created from the command line | 0.2 s |
-| routes › admin: made-up and malformed ids never cause a server error | 0.2 s |
-| loops › daily log: create, edit, attach, submit (journal checked each step) | 0.1 s |
+| uploads › every upload route refuses a file over its size limit without a server error or a change | 1.2 s |
+| boot › the demo company is created from the command line | 0.1 s |
+| routes › admin: made-up and malformed ids never cause a server error | 0.1 s |
 | sign-in › repeated wrong passwords are slowed down | 0.1 s |
 | boot › the server starts on a free port and answers | 0.1 s |
 | data › the server starts again on the same data (behind HTTPS: --secure-cookies) | 0.1 s |
-| tools › tasks: create, open, edit, attach | 0.1 s |
+| uploads › a file over 25 MB is refused without a server error | 0.1 s |
+| routes › admin: every page in the route table answers without a server error | 0.0 s |
 
 ## Slowest requests (of 5496)
 
 | Request | Status | Time |
 |---|---|---|
-| POST /projects/2/daily-logs/3/upload (superintendent) | 303 | 0.1 s |
-| POST /projects/2/tasks/1/upload (project manager) | 303 | 0.1 s |
-| POST /do/form_template.create (admin) | 303 | 0.1 s |
 | POST /projects/2/rfis/8/upload (project manager) | 303 | 0.0 s |
-| POST /prequalification/1/upload (admin) | 303 | 0.0 s |
 | POST /login (admin) | 303 | 0.0 s |
+| POST /prequalification/1/upload (admin) | 303 | 0.0 s |
 | POST /login (admin (after restart)) | 303 | 0.0 s |
 | POST /login (project manager) | 303 | 0.0 s |
+| POST /projects/2/action-plans/1/upload (admin) | 303 | 0.0 s |
+| POST /login (anonymous) | 401 | 0.0 s |
+| POST /login (anonymous) | 303 | 0.0 s |
 
 ## Every check
 
 | Area | Check | Tag | Result | Time | Detail |
 |---|---|---|---|---|---|
 | suite | the page reader understands forms and links | @smoke | pass | 0.0 s | forms, selects, checkboxes, buttons and links |
-| boot | the demo company is created from the command line | @smoke | pass | 0.2 s | Demo company created in /tmp/buildkiosk-regress-2900/data. |
-| boot | an API token is made for every role from the command line | @smoke | pass | 0.1 s | 6 tokens |
-| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:37047 |
+| boot | the demo company is created from the command line | @smoke | pass | 0.1 s | Demo company created in /tmp/buildkiosk-regress-7696/data. |
+| boot | an API token is made for every role from the command line | @smoke | pass | 0.0 s | 6 tokens |
+| boot | the server starts on a free port and answers | @smoke | pass | 0.1 s | 127.0.0.1:35353 |
 | boot | the sign-in page answers | @smoke | pass | 0.0 s | 200 |
 | sign-in | admin signs in | @smoke | pass | 0.0 s | ada@example.com |
 | sign-in | project manager signs in | @smoke | pass | 0.0 s | priya.raman@example.com |
@@ -81,13 +76,13 @@ None.
 | sign-in | a wrong password is refused | @smoke | pass | 0.0 s | 401 |
 | safety | a sign-in without the form token is refused (CSRF) | @smoke | pass | 0.0 s | 403 |
 | projects | the demo projects are listed on the home page | @smoke | pass | 0.0 s | projects [2, 1] |
-| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×125, 303×5, 404×104 |
-| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×116, 303×7, 404×111 |
+| routes | admin: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×125, 303×5, 404×104 |
+| routes | project manager: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×116, 303×7, 404×111 |
 | routes | superintendent: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×100, 303×7, 404×127 |
-| routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.1 s | 234 routes: 200×100, 303×7, 404×127 |
+| routes | project engineer: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×100, 303×7, 404×127 |
 | routes | subcontractor: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×69, 303×7, 404×158 |
 | routes | owner and design team: every page in the route table answers without a server error | @smoke | pass | 0.0 s | 234 routes: 200×76, 303×7, 404×151 |
-| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.2 s | no server errors |
+| routes | admin: made-up and malformed ids never cause a server error | @release | pass | 0.1 s | no server errors |
 | access | anonymous: every private page sends the visitor to sign in | @smoke | pass | 0.0 s | 221 private pages |
 | access | subcontractor: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
 | access | owner and design team: company admin pages are refused | @smoke | pass | 0.0 s | /settings, /admin/backups, /admin/email |
@@ -107,16 +102,16 @@ None.
 | crawl | owner and design team: every link shown opens (no 4xx, no "not found" page) | @release | pass | 0.0 s | 304 pages |
 | loops | RFI: create, edit, attach, respond, close (journal checked each step) | @smoke | pass | 0.0 s | RFI 7: rfi.create → rfi.update → rfi.attach → rfi.respond → rfi.close |
 | loops | punch list: create, edit, attach, finish (journal checked each step) | @smoke | pass | 0.0 s | item 7: punch.create → punch.update → punch.attach → punch.complete |
-| loops | daily log: create, edit, attach, submit (journal checked each step) | @smoke | pass | 0.1 s | log 3: daily_log.create → daily_log.update → daily_log.attach → daily_log.submit |
+| loops | daily log: create, edit, attach, submit (journal checked each step) | @smoke | pass | 0.0 s | log 3: daily_log.create → daily_log.update → daily_log.attach → daily_log.submit |
 | access | admin: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 29 tools open, 0 refused |
 | access | project manager: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 29 tools open, 0 refused |
 | access | superintendent: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 29 tools open, 0 refused |
 | access | project engineer: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 29 tools open, 0 refused |
-| access | subcontractor: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 18 tools open, 11 refused (passes now: take it off the known-skips list) |
+| access | subcontractor: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 18 tools open, 11 refused |
 | access | owner and design team: the tools its permission template allows open, the others are refused | @smoke | pass | 0.0 s | 21 tools open, 8 refused |
 | tools | submittals: create, open, edit, attach | @release | pass | 0.0 s | submittals 5: submittal.create → edit (no change) → submittal.attach |
 | tools | observations: create, open, edit, attach | @release | pass | 0.0 s | observations 5: observation.create → edit (no change) → observation.attach |
-| tools | tasks: create, open, edit, attach | @release | pass | 0.1 s | tasks 1: task.create → edit (no change) → task.attach |
+| tools | tasks: create, open, edit, attach | @release | pass | 0.0 s | tasks 1: task.create → edit (no change) → task.attach |
 | tools | incidents: create, open, edit, attach | @release | pass | 0.0 s | incidents 1: incident.create → edit (no change) → incident.attach |
 | tools | meetings: create, open, edit, attach | @release | pass | 0.0 s | meetings 3: meeting.create → edit → meeting.attach |
 | tools | transmittals: create, open, edit, attach | @release | pass | 0.0 s | transmittals 3: transmittal.create → edit → transmittal.attach |
@@ -147,9 +142,9 @@ None.
 | uploads | a file over 25 MB is refused without a server error | @release | pass | 0.1 s | answered 303 The upload failed or the file is larger than 25 MB. |
 | uploads | a photo upload must be an image | @release | pass | 0.0 s | POST /projects/2/photos/upload refused: Photos must be JPEG, PNG, GIF or WebP pictures. |
 | safety | an uploaded web page is served as a download, never as a live page | @release | pass | 0.0 s | attachment + nosniff |
-| tools | forms: make a template and start a form from it | @release | pass | 0.1 s | form_template.create → form.create (/projects/2/forms/1?ok=Start%20form%3A%20done.) |
+| tools | forms: make a template and start a form from it | @release | pass | 0.0 s | form_template.create → form.create (/projects/2/forms/1?ok=Start%20form%3A%20done.) |
 | tools | prequalification: add a record for a company | @release | pass | 0.0 s | /prequalification?ok=Save%20prequalification%3A%20done. |
-| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.4 s | 34 upload routes refused an over-size file |
+| uploads | every upload route refuses a file over its size limit without a server error or a change | @release | pass | 1.2 s | 34 upload routes refused an over-size file |
 | uploads | every upload route either refuses a web page or serves it back only as a download | @release | pass | 0.0 s | 34 routes; 24 took the file and serve files only as downloads |
 | api | a command with an API token works; without one it is refused | @release | pass | 0.0 s | 200 with, 401 without |
 | api | a subcontractor's token cannot add people to the company | @release | pass | 0.0 s | 403 |
@@ -171,6 +166,6 @@ None.
 | boot | the restarted server was still running at the end | @release | pass | 0.0 s | yes |
 | safety | no panics in the server log (after the restart) | @smoke | pass | 0.0 s | 1 log lines |
 | safety | the server log shows no password, token or session cookie (after the restart) | @smoke | pass | 0.0 s | clean |
-| upgrade | the previous release's data folder opens with this build | @release | skip | 0.0 s | no previous release program (BK_REGRESS_PREV_BIN) (known until 2026-11-17: no published release yet to upgrade from; the first release tag makes this check run (regress.yml downloads the previous release's Linux build)) |
+| upgrade | the previous release's data folder opens with this build | @release | skip | 0.0 s | no previous release program (BK_REGRESS_PREV_BIN) (known: #43, until 2026-12-01: no published release yet to upgrade from; the first release tag makes this check run (regress.yml downloads the previous release's Linux build)) |
 
 Known-failing checks live in `qa/known-skips.json` (reason, issue, expiry of at most two weeks); see `docs/qa.md`.
